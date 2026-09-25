@@ -13,6 +13,6 @@ model = ds.model(Ticket)  # base Laya; train it on your data for real use
 client.upsert("tickets", points=points(model, list(range(len(DOCS))), [embed(d) for d in DOCS], DOCS))
 
 print(client.retrieve("tickets", [0])[0].payload)
-billing = models.Filter(must=[models.FieldCondition(key="team", match=models.MatchValue(value="billing"))])
-hits = client.query_points("tickets", query=embed("refund"), query_filter=billing, limit=2).points
-print("billing hits:", [h.payload["text"] for h in hits])
+team_filter = models.Filter(must=[models.FieldCondition(key="team", match=models.MatchValue(value="billing"))])
+hits = client.query_points("tickets", query=embed("refund"), query_filter=team_filter, limit=2).points
+print("billing team hits:", [h.payload["text"] for h in hits])
