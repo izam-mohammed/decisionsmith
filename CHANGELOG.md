@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (25/09/2026)
 
 - **A coding agent can build the model, no LLM API key.** `ds.golden(..., teacher="agent")` and
   `decisionsmith golden --teacher agent` write a labelling session (`golden.session.json`) instead of calling an LLM;

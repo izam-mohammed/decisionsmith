@@ -110,7 +110,7 @@ m = ds.load(model.save("models/ticket"))  # models/ticket-v1
 
 In production, `ds.harness(m, teacher=llm, collect=0.1)` keeps a sample of real texts, and
 `ds.golden("decisions.db", teacher=llm, schema=labels)` turns them into the next labelled dataset
-([golden](docs/golden.md), [collect](docs/collect.md)).
+([golden](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/golden.md), [collect](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/collect.md)).
 
 ## Compare engines on your data
 
@@ -122,14 +122,14 @@ decisionsmith bench tickets.csv --schema app.py:Ticket --engines claude-sonnet-5
 
 `uvx --from "decisionsmith[all]" decisionsmith mcp` gives Claude Code, Codex, Cursor and other MCP clients the
 harness, bench, status, finetune and label as tools. There's also a Claude Code plugin; see
-[docs/agents.md](docs/agents.md).
+[docs/agents.md](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/agents.md).
 
 ## Docs
 
-[Quickstart](docs/quickstart.md) · [Fine-tuning](docs/finetune.md) · [Guide: engines, modes, status, adapt,
-bench](docs/guide.md) · [FAQ](docs/faq.md) · [Integrations](docs/integrations.md)
+[Quickstart](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/quickstart.md) · [Fine-tuning](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/finetune.md) · [Guide: engines, modes, status, adapt,
+bench](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/guide.md) · [FAQ](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/faq.md) · [Integrations](https://github.com/izam-mohammed/decisionsmith/blob/main/docs/integrations.md)
 
-Runnable [examples](examples/) (gallery, every one runs offline) and [notebooks](notebooks/).
+Runnable [examples](https://github.com/izam-mohammed/decisionsmith/tree/main/examples) (gallery, every one runs offline) and [notebooks](https://github.com/izam-mohammed/decisionsmith/tree/main/notebooks).
 
 ---
 
