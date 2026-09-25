@@ -39,6 +39,11 @@ fine-tuning, 0.77 after, per Laya's benchmarks). LLMs are good zero-shot, and sl
 decisionsmith starts with the LLM, logs every answer, fine-tunes the fast model on those answers, and moves traffic
 to it field by field once the numbers say it's ready.
 
+So don't trust a System One model zero-shot on your task. Let a normal LLM make the decisions first (`mode="teacher"`
+or `"shadow"`), behind the guardrails decisionsmith already has: answers validated against your schema, the text
+fenced as data, a fallback when an engine fails, and a per-field confidence threshold plus a 5% audit before any
+field moves to the student.
+
 ## The loop
 
 ```python
