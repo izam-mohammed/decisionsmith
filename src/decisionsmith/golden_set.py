@@ -123,6 +123,15 @@ def _choose(pool: list[_Candidate], n: int, strategy: str, rng: random.Random) -
     return out[:n]
 
 
+def _position(text: str) -> float:
+    return int(text_hash(text)[:8], 16) / 0xFFFFFFFF
+
+
+def in_test(text: str, share: float) -> bool:
+    """Whether a text belongs to the held-out test split: a stable function of the text, the same in every run."""
+    return _position(text) < share
+
+
 def _check_out(out: str | None, overwrite: bool) -> None:
     if out is None:
         return
@@ -147,16 +156,17 @@ def _label_all(
         try:
             got = schema.distributions(response(engine, engine.ask(c.text, questions), questions)[0])
         except Exception as e:
-            return None, str(e).splitlines()[0] if isinstance(e, EngineError) else "%s: %s" % (type(e).__name__, e)
+            return None, e.message if isinstance(e, EngineError) else "%s: %s" % (type(e).__name__, e)
         for n, v in human.items():
             got[n] = {k: float(k == v) for k in schema.fields[n].labels}
         return got, name + ("+human" if human else "")
 
     done: list[tuple[_Candidate, dict[str, Distribution], str]] = []
     failed, first_error = 0, None
+    starts = [0, *range(GIVE_UP_AFTER, len(chosen), 8)]
     with ThreadPoolExecutor(max_workers=8) as pool:
-        for start in range(0, len(chosen), 8):
-            batch = chosen[start : start + 8]
+        for i, start in enumerate(starts):
+            batch = chosen[start : starts[i + 1] if i + 1 < len(starts) else len(chosen)]
             for c, (answers, by) in zip(batch, pool.map(one, batch)):
                 if answers is None:
                     failed += 1
@@ -209,12 +219,10 @@ def golden(
     rng = random.Random(seed)
     chosen = _choose(pool, n, strategy, rng)
     labelled, failed, first_error = _label_all(chosen, engine, compiled)
+    held = {i for i, (c, _, _) in enumerate(labelled) if not c.trained and in_test(c.text, test)}
     eligible = [i for i, (c, _, _) in enumerate(labelled) if not c.trained]
-    rng.shuffle(eligible)
-    k = round(test * len(labelled))
-    if test > 0 and len(labelled) >= 2:
-        k = min(max(1, k), len(labelled) - 1)
-    held = set(eligible[:k])
+    if test > 0 and len(labelled) >= 2 and not held and eligible:
+        held = {min(eligible, key=lambda i: _position(labelled[i][0].text))}
     rows = [
         {
             "id": "g" + text_hash(c.text)[:12],

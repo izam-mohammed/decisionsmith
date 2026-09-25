@@ -43,7 +43,9 @@ either in or out.
 - Text is stored only for collected rows, in the SQLite file you pass as `log=` (default `decisions.db`), on your
   machine or server. Nothing is sent anywhere by the log.
 - Delete one decision (text, answers and labels): `h.forget(decision_id)`. The log overwrites deleted bytes and
-  truncates its write-ahead file, so the text is gone from the database files, not only hidden.
+  truncates its write-ahead file, so the text is gone from the database files, not only hidden. If another program
+  is reading the same log at that moment, the write-ahead file can't be truncated yet: `forget` warns, and the text
+  may stay there until the next checkpoint (close the other reader and call `forget` again).
 - Retention: `h.forget(older_than_days=30)` deletes everything logged more than 30 days ago; run it on a schedule.
 - `forget` only reaches the log. Copies made earlier stay where they are: an export (`h.export`), a `golden.csv`,
   and anything a model was trained on. Delete or regenerate those too.
@@ -67,6 +69,7 @@ either in or out.
 | `collect must be in [0, 1]` | use a share such as `0.1` |
 | `give a decision id or older_than_days` | `h.forget(r.id)` or `h.forget(older_than_days=30)` |
 | `no decision with id ...` | it was already forgotten, or it is in another log file |
+| `... their text may stay in its write-ahead file` | another connection was reading the log; close it and run `forget` again |
 | `older_than_days must be 0 or more` | pass a number of days, such as `30` |
 | `exported 0 rows: the logged decisions have no text` | raise `collect=` so texts are kept for training |
 

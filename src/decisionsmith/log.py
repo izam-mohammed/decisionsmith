@@ -107,7 +107,17 @@ class Log:
             for table in ("labels", "trained", "decisions"):
                 self._db.executemany("DELETE FROM %s WHERE id = ?" % table, [(i,) for i in ids])
             self._db.commit()
-            self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            busy = self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
+        if busy:
+            import warnings
+
+            warnings.warn(
+                "forgot %d decision(s), but another connection is reading %s, so their text may stay in its "
+                "write-ahead file until the next checkpoint; close other readers and call forget again to be sure"
+                % (len(ids), self.path),
+                UserWarning,
+                stacklevel=3,
+            )
         return len(ids)
 
     def mark_trained(self, ids: Iterable[str], run: str) -> None:

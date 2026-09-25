@@ -46,9 +46,9 @@ Duplicates (the same text, see [what counts as the same text](evaluate.md#same-t
 | `llm:<model>+human` | your labels cover some fields; the LLM answered the rest |
 | `llm:<model>` | the LLM answered every field |
 
-If the LLM fails on a row it is left out and counted in the summary with the first error. If it fails on the first
-five rows and none worked, or on every row, `ds.golden` stops with an `EngineError` that shows the first error (CLI
-exit code 4), instead of writing an empty file.
+If the LLM fails on a row it is left out and counted in the summary with the first error. `ds.golden` labels the
+first five rows before the rest; if all five fail (or every row fails), it stops with an `EngineError` that shows
+the first error (CLI exit code 4) instead of writing an empty file.
 
 ## Options
 
@@ -63,12 +63,17 @@ exit code 4), instead of writing an empty file.
 The `split` column takes `train`, `calib` or `test` (`dev` and `val` mean `calib`). `test` rows are held out for
 `evaluate` and `bench` and never trained on; rows you mark `calib` are used to fit the confidence calibration
 instead of a random slice. A blank split counts as `train` when any row in the file has a split; only a file with
-no split values at all is used whole. Any other value is an error that names the line. With `test` above 0 and at
-least two rows, at least one row is held out. Rows the model was already trained on (from the log) are never put
-in the test split.
+no split values at all is used whole. Any other value is an error that names the line.
 
-Row ids come from the text (`g` plus a short hash), so files from several runs can be joined without clashes. The
-file is written to a temporary name and renamed when it is complete.
+Which rows are `test` comes from a hash of each text, not a random draw, so the same text gets the same split in
+every run and about `test` of the rows are held out. With `test` above 0 and at least two rows, at least one row is
+held out (if no text falls in the share, the one with the lowest hash is). Rows the model was already trained on
+(from the log) are never put in the test split.
+
+Row ids come from the text (`g` plus a short hash). Files from several runs can be joined into one: a row that
+appears in more than one (same id, text and labels) counts once, and as `test` if any copy is `test`. The same id
+with different text or labels is an error that names the id, so fix one copy. The file is written to a temporary
+name and renamed when it is complete.
 
 Cells that start with `=`, `+`, `-` or `@` are written with a leading `'` so a spreadsheet doesn't run them as a
 formula; decisionsmith removes it again when it reads the file.

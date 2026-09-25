@@ -133,7 +133,12 @@ def test_golden_uncertain_from_a_log(db, tmp_path, capsys):
     out = str(tmp_path / "golden.csv")
     rows = ds.golden(db, FakeEngine(truth, name="big-llm"), n=10, schema=Ticket, out=out)
     assert len(rows) == 10 and all(int(r["text"].split()[-1]) % 2 == 1 for r in rows)
-    assert sum(r["split"] == "test" for r in rows) == 2 and {r["labelled_by"] for r in rows} == {"llm:big-llm"}
+    from decisionsmith.golden_set import in_test
+
+    held = sum(r["split"] == "test" for r in rows)
+    assert held == max(1, sum(in_test(r["text"], 0.2) for r in rows)) and {r["labelled_by"] for r in rows} == {
+        "llm:big-llm"
+    }
     csv_rows = read(out)
     assert list(csv_rows[0]) == ["id", "text", "team", "wants_refund", "split", "labelled_by"]
     assert csv_rows[0]["team"] == truth(csv_rows[0]["text"])["team"]
@@ -143,7 +148,9 @@ def test_golden_uncertain_from_a_log(db, tmp_path, capsys):
     assert len(read(out)) == 10
     ds.golden(db, FakeEngine(truth), n=3, schema=Ticket, out=out, overwrite=True, verbose=False)
     assert len(read(out)) == 3 and not os.path.exists(out + ".tmp")
-    assert "golden: 10 rows (uncertain) labelled by big-llm · 2 marked split=test · wrote" in capsys.readouterr().out
+    assert "golden: 10 rows (uncertain) labelled by big-llm · %d marked split=test · wrote" % held in (
+        capsys.readouterr().out
+    )
 
 
 def test_golden_from_a_harness_and_disagree(db):
@@ -230,13 +237,13 @@ def test_golden_split_is_kept_out_of_training_and_used_for_evaluation(tmp_path):
     train = data_mod.load(out, model.schema)
     test = data_mod.load(out, model.schema, split="test")
     assert (
-        len(train) == 40
-        and len(test) == 10
+        len(train) + len(test) == 50
+        and 0 < len(test) < 25
         and {r.split for r in train} == {"train"}
         and not {r.id for r in train} & {r.id for r in test}
     )
     report = ds.model(LABELS, FakeEngine(team, confidence=1.0)).evaluate(out)
-    assert report.details["rows"] == 10
+    assert report.details["rows"] == len(test)
     both = [{"text": "a", "label": "sales", "split": "test"}, {"text": "b", "label": "sales"}]
     assert [r.text for r in data_mod.load(model._rows(both), model.schema)] == ["b"]
     assert [r.text for r in data_mod.load(model._rows(both), model.schema, split="test")] == ["a"]
@@ -553,3 +560,54 @@ def test_hash_chain_train_retrain_save_load_evaluate(tiny, tmp_path):
     loaded = ds.load(m.save(str(tmp_path / "models" / "team")))
     report = loaded.evaluate(first[:12])
     assert report.details["overlap"] == 12 and not report.go
+
+
+def test_split_is_the_same_for_a_text_in_every_run_and_joined_runs_load(tmp_path):
+    shared = corpus(10)
+    one = [*shared, *("sync is broken please %d" % i for i in range(100, 130))]
+    two = [*shared, *("I want to upgrade please %d" % i for i in range(200, 230))]
+    a, b = str(tmp_path / "a.csv"), str(tmp_path / "b.csv")
+    ra = ds.golden(one, FakeEngine(team), n=40, schema=LABELS, strategy="random", seed=1, out=a, verbose=False)
+    rb = ds.golden(two, FakeEngine(team), n=40, schema=LABELS, strategy="random", seed=9, out=b, verbose=False)
+    sa = {r["text"]: r["split"] for r in ra}
+    sb = {r["text"]: r["split"] for r in rb}
+    assert all(sa[t] == sb[t] for t in shared)
+    joined = tmp_path / "joined.csv"
+    lines_b = open(b, encoding="utf-8").read().splitlines()[1:]
+    joined.write_text(open(a, encoding="utf-8").read() + "\n".join(lines_b) + "\n", encoding="utf-8")
+    schema = ds.model(LABELS, "fake").schema
+    train = data_mod.load(str(joined), schema)
+    test = data_mod.load(str(joined), schema, split="test")
+    assert len(train) + len(test) == 70 and not {r.text for r in train} & {r.text for r in test}
+
+
+def test_merged_copy_marked_test_anywhere_stays_test():
+    schema = ds.model(LABELS, "fake").schema
+    rows = [
+        {"id": "g1", "text": "a", "answers": {"label": "sales"}, "split": "train"},
+        {"id": "g1", "text": "a", "answers": {"label": "sales"}, "split": "test"},
+    ]
+    assert data_mod.load(rows, schema) == []
+    assert [r.id for r in data_mod.load(rows, schema, split="test")] == ["g1"]
+
+
+def test_apostrophe_formula_text_round_trips(tmp_path):
+    out = str(tmp_path / "g.csv")
+    texts = ["'=quoted you charged me twice", "'plain you charged me twice", "=SUM you charged me twice"]
+    ds.golden(texts, FakeEngine(team), n=3, schema=LABELS, strategy="random", out=out, verbose=False)
+    loaded = data_mod.load(out, ds.model(LABELS, "fake").schema, split="all")
+    assert sorted(r.text for r in loaded) == sorted(texts)
+
+
+def test_forget_warns_when_the_wal_is_busy(db):
+    import sqlite3
+
+    with ds.harness(Ticket, teacher=FakeEngine(truth), log=db) as h:
+        r = h.decide("you charged me twice")
+        h.decide("the app crashes on login")
+        reader = sqlite3.connect(db)
+        reader.execute("BEGIN")
+        reader.execute("SELECT count(*) FROM decisions").fetchone()
+        with pytest.warns(UserWarning, match="write-ahead file"):
+            h.forget(r.id)
+        reader.close()

@@ -49,14 +49,19 @@ def text_hash(text: Any) -> str:
     return hashlib.sha256(same_text(text).encode()).hexdigest()[:16]
 
 
+def _formula(value: str) -> bool:
+    return value.startswith(FORMULA) or (len(value) > 1 and value[0] == "'" and value[1] in FORMULA)
+
+
 def safe_cell(value: str) -> str:
-    """Quote a CSV cell a spreadsheet would run as a formula (`=`, `+`, `-`, `@` first)."""
-    return "'" + value if value.startswith(FORMULA) else value
+    """Quote a CSV cell a spreadsheet would run as a formula (`=`, `+`, `-`, `@` first), and one that already
+    starts with `'` plus one of those, so reading it back gives the original text."""
+    return "'" + value if _formula(value) else value
 
 
 def unsafe_cell(value: Any) -> Any:
     """Undo `safe_cell` when reading a CSV back."""
-    if isinstance(value, str) and len(value) > 1 and value[0] == "'" and value[1] in FORMULA:
+    if isinstance(value, str) and value[:1] == "'" and _formula(value[1:]):
         return value[1:]
     return value
 
@@ -190,13 +195,9 @@ def load(
         if not isinstance(rec, dict):
             raise DataError("%s: expected an object" % where)
     marked = any(_split_of(rec, where) for where, rec in records)
-    rows: list[Row] = []
+    everything: list[Row] = []
     for n, (where, rec) in enumerate(records):
         held = _split_of(rec, where) or ("train" if marked else "")
-        if split == "train" and held == "test":
-            continue
-        if split == "test" and marked and held != "test":
-            continue
         rid = str(rec.get("id") or "row%d" % n)
         group = None if group_by is None else str(rec.get(group_by, "")) or None
         if "questions" in rec and "gold" in rec:
@@ -215,11 +216,34 @@ def load(
             row = _from_answers(compiled, rec, rid, where, group)
         row.split = held or None
         if row.targets:
-            rows.append(row)
-    ids = [r.id for r in rows]
-    if len(set(ids)) != len(ids):
-        raise DataError("row ids must be unique")
-    return rows
+            everything.append(row)
+    return [r for r in _merge_repeats(everything) if _keep(r, split, marked)]
+
+
+def _keep(row: Row, split: str, marked: bool) -> bool:
+    if split == "train":
+        return row.split != "test"
+    if split == "test":
+        return not marked or row.split == "test"
+    return True
+
+
+def _merge_repeats(rows: list[Row]) -> list[Row]:
+    """The same row twice (joined golden runs) counts once, and as `test` if any copy is `test`."""
+    by_id: dict[str, Row] = {}
+    for r in rows:
+        first = by_id.get(r.id)
+        if first is None:
+            by_id[r.id] = r
+            continue
+        if first.text != r.text or first.targets != r.targets:
+            raise DataError(
+                "row id %r appears twice with different text or labels; give each row its own id, or fix one copy"
+                % r.id
+            )
+        if r.split == "test":
+            first.split = "test"
+    return list(by_id.values())
 
 
 def split(
