@@ -84,11 +84,9 @@ def test_train_predict_save_load(tiny, tmp_path, capsys, monkeypatch):
             m.predict(bad)
 
 
-def test_train_keeps_old_model_when_worse(tiny, tmp_path, monkeypatch, capsys):
-    import decisionsmith.training.finetuning as fmod
-
+def _fake_train(tuned):
     def fake(rows, model, base, out, **kw):
-        acc = {"base": 0.9, "tuned": 0.5}
+        acc = {"base": 0.9, "tuned": tuned}
         return ds.Report(
             "finetune",
             "x",
@@ -100,11 +98,29 @@ def test_train_keeps_old_model_when_worse(tiny, tmp_path, monkeypatch, capsys):
             },
         )
 
-    monkeypatch.setattr(fmod, "finetune", fake)
-    m = ds.model(Ticket, str(tiny))
-    m.train([{"text": "x", "team": "sales", "wants_refund": True}], out=str(tmp_path / "o"))
+    return fake
+
+
+def test_train_keeps_old_model_when_worse(tiny, tmp_path, monkeypatch, capsys):
+    import decisionsmith.training.finetuning as fmod
+
+    monkeypatch.setattr(fmod, "finetune", _fake_train(0.5))
+    m = ds.model(LABELS, str(tiny))
+    rep = m.train([("x", "sales")], out=str(tmp_path / "o"))
     out = capsys.readouterr().out
     assert "kept the old model" in out and "rough" not in out and m.trained is None
+    assert rep.switched is False and rep.to_dict()["switched"] is False
+    with pytest.raises(ValueError, match="training ran but the new model scored worse on its test split"):
+        m.save(str(tmp_path / "saved"))
+    monkeypatch.setattr(fmod, "finetune", _fake_train(0.95))
+    rep = m.train([("x", "sales")], out=str(tiny))
+    assert rep.switched is True and m.trained == str(tiny)
+    assert m.save(str(tmp_path / "saved"), verbose=False) == str(tmp_path / "saved-v1")
+
+
+def test_report_switched_only_after_training():
+    rep = ds.Report("bench", "x", [])
+    assert rep.switched is None and "switched" not in rep.to_dict()
 
 
 def test_rows_shapes(tiny):

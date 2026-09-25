@@ -12,7 +12,8 @@ to use, with no need to define the labels or the class again.
 import decisionsmith as ds
 
 model = ds.model(["billing", "technical", "sales"])
-model.train("tickets.csv")
+report = model.train("tickets.csv")
+print(report.switched)  # True: the model now uses the new weights; False: they scored worse, the old model stays
 model.evaluate("test.csv")
 path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
 
@@ -22,6 +23,10 @@ print(m.predict("I was charged twice"))
 
 `tickets.csv` and `test.csv` need a `text` column and a `label` column (for a labels model) or one column per field
 (for a class). `path` is what `save` returns: the name you pass gets a version number.
+
+`model.train()` keeps the old model when the new weights score worse on its held-out test split, and
+`report.switched` says which happened. After a training run that kept the old model, `save` refuses, since nothing
+changed.
 
 ## Versions
 
@@ -92,6 +97,7 @@ print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...
 | message | fix |
 |---|---|
 | `nothing to save yet` | train first (`model.train(...)`), or save a model you loaded |
+| `nothing new to save: training ran but the new model scored worse on its test split` | `report.switched` was False; add more (and more varied) rows and train again |
 | `... already exists and saved versions are never overwritten` | use a new version number, or `model.save()` for the next free one |
 | `... is a plain Laya checkpoint` | the folder came from `ds.finetune`; use `ds.model(labels_or_class, path)` |
 | `Ticket does not ask the same questions as the saved model (team.criteria: ...)` | the class differs from the saved one where the message says; load without it, or change it to match |
