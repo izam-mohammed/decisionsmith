@@ -414,3 +414,44 @@ def test_shown_path_on_another_drive(monkeypatch):
 
     monkeypatch.setattr(artifact.os.path, "commonpath", other_drive)
     assert artifact.shown_path(os.path.join("somewhere", "team-v1")) == "team-v1"
+
+
+def test_portable_base_ids(tmp_path, monkeypatch):
+    assert (
+        artifact.portable("laya") == "laya" and artifact.portable("convaiinnovations/laya") == "convaiinnovations/laya"
+    )
+    assert artifact.portable("laya:multilingual") == "laya:multilingual"
+    assert artifact.portable(str(tmp_path / "base")) == "base"
+    assert artifact.portable("laya:%s" % (tmp_path / "base")) == "laya:base"
+    assert artifact.portable("./runs/v1") == "v1" and artifact.portable("~/ckpt") == "ckpt"
+    assert artifact.portable("C:\\models\\base") in ("base", "C:\\models\\base")
+    (tmp_path / "local").mkdir()
+    monkeypatch.chdir(tmp_path)
+    assert artifact.portable("local") == "local" and artifact.portable(None) is None and artifact.portable("") == ""
+
+
+def test_saved_folder_has_no_local_base_path_and_still_loads_and_retrains(tiny, tmp_path):
+    first = [(t, truth(t)["team"]) for t in corpus(30)]
+    schema = ds.model(LABELS, "fake").schema.model
+    run = str(tmp_path / "run")
+    ds.finetune(ds.model(LABELS, "fake")._rows(first), schema, base=str(tiny), out=run, epochs=1, verbose=False)
+    m = ds.model(LABELS, run)
+    m.trained = run
+    path = m.save(str(tmp_path / "models" / "team"), verbose=False)
+    meta = json.loads(open(os.path.join(path, "decisionsmith.json")).read())
+    cfg = json.loads(open(os.path.join(path, "rl_agent_config.json")).read())
+    name = os.path.basename(str(tiny))
+    assert meta["base_model"] == name and meta["training"]["base"] == name and meta["training"]["base_id"] == name
+    assert cfg["decisionsmith"]["base"] == name and cfg["decisionsmith"]["base_id"] == name
+    assert cfg["decisionsmith"]["text_hashes"]
+    for file in ("decisionsmith.json", "rl_agent_config.json", "MODEL_CARD.md"):
+        assert str(tmp_path) not in open(os.path.join(path, file), encoding="utf-8").read()
+    loaded = ds.load(path)
+    assert loaded.predict("you charged me twice") in LABELS
+    again = str(tmp_path / "again")
+    second = [(t + " more", truth(t)["team"]) for t in corpus(30)]
+    ds.finetune(ds.model(LABELS, "fake")._rows(second), schema, base=path, out=again, epochs=1, verbose=False)
+    hashes = json.loads(open(os.path.join(again, "rl_agent_config.json")).read())["decisionsmith"]["text_hashes"]
+    assert len(hashes) == 60
+    resaved = json.loads(open(os.path.join(loaded.save(verbose=False), "decisionsmith.json")).read())
+    assert resaved["training"]["base"] == name

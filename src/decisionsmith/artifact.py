@@ -142,11 +142,23 @@ def _card(meta: dict[str, Any], report: Report | None, where: str) -> str:
     return "\n".join(lines)
 
 
+def portable(base: Any) -> Any:
+    """A base checkpoint id without local paths: a local folder becomes its folder name; `laya`, hub ids stay."""
+    if not isinstance(base, str) or not base:
+        return base
+    kind, sep, rest = base.partition(":")
+    if sep and kind == "laya" and rest:
+        return "laya:%s" % portable(rest)
+    local = os.path.isabs(base) or base.startswith((".", "~")) or "\\" in base or os.path.isdir(base)
+    return os.path.basename(os.path.normpath(os.path.expanduser(base))) if local else base
+
+
+def _portable_training(training: dict[str, Any]) -> dict[str, Any]:
+    return {k: portable(v) if k in ("base", "base_id") else v for k, v in training.items()}
+
+
 def _base_name(base: Any) -> str:
-    if not base:
-        return "laya"
-    text = str(base)
-    return os.path.basename(os.path.normpath(text)) if os.path.isabs(text) or os.sep in text else text
+    return str(portable(base)) if base else "laya"
 
 
 def shown_path(path: str) -> str:
@@ -208,7 +220,12 @@ def save(model: Model, path: str | os.PathLike[str] | None, *, verbose: bool = T
     shutil.copytree(source, tmp, ignore=shutil.ignore_patterns("checkpoint_latest", META, "report.*", "*.tmp-*"))
     cfg_path = os.path.join(source, "rl_agent_config.json")
     trained = (_json(cfg_path).get("decisionsmith") or {}) if os.path.exists(cfg_path) else {}
-    training = trained or (model.meta.get("training") if model.meta else None) or {}
+    training = _portable_training(trained or (model.meta.get("training") if model.meta else None) or {})
+    tmp_cfg = os.path.join(tmp, "rl_agent_config.json")
+    if trained and os.path.exists(tmp_cfg):
+        cfg = _json(tmp_cfg)
+        cfg["decisionsmith"] = _portable_training(cfg["decisionsmith"])
+        _write_json(tmp_cfg, cfg)
     labels = list(model.schema.fields["label"].labels) if model.simple else None
     calibration = model.calibration
     report = model.report
