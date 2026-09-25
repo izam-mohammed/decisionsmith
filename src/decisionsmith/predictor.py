@@ -224,7 +224,7 @@ class Model:
             answers = x.get("answers")
             if not isinstance(answers, dict):
                 answers = {k: v for k, v in x.items() if k in self.schema.fields}
-            rows.append({"id": x.get("id"), "text": x.get("text"), "answers": answers})
+            rows.append({"id": x.get("id"), "text": x.get("text"), "answers": answers, "split": x.get("split")})
         return rows
 
     def train(

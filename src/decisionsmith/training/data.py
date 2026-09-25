@@ -130,13 +130,22 @@ def _records(data: Any) -> Iterable[tuple[str, dict[str, Any]]]:
         yield "row %d" % i, rec
 
 
-def load(data: Any, schema: type[BaseModel] | Schema | None = None, group_by: str | None = None) -> list[Row]:
-    """Read training data. CSV needs a `text` column and one column per schema field (blank = unlabelled)."""
+def load(
+    data: Any, schema: type[BaseModel] | Schema | None = None, group_by: str | None = None, split: str = "train"
+) -> list[Row]:
+    """Read training data. CSV needs a `text` column and one column per schema field (blank = unlabelled).
+
+    Rows with a `split` column (a golden dataset) are filtered: `split="train"` drops `test` rows, so training never
+    sees the held-out slice; `split="test"` keeps only `test` rows (and rows without a split).
+    """
     compiled = compile_schema(schema) if isinstance(schema, type) else schema
     rows: list[Row] = []
     for n, (where, rec) in enumerate(_records(data)):
         if not isinstance(rec, dict):
             raise DataError("%s: expected an object" % where)
+        held = str(rec.get("split") or "").strip().lower()
+        if (held == "test") if split != "test" else (held not in ("", "test")):
+            continue
         rid = str(rec.get("id") or "row%d" % n)
         group = None if group_by is None else str(rec.get(group_by, "")) or None
         if "questions" in rec and "gold" in rec:

@@ -21,7 +21,7 @@ MIN_DECISIONS, MIN_PER_OPTION, MAX_ECE = 100, 10, 0.10
 
 def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     schema = model.schema
-    rows = data_mod.load(model._rows(data), schema)
+    rows = data_mod.load(model._rows(data), schema, split="test")
     if not rows:
         raise ValueError("no labelled rows to evaluate; give text plus a label per field")
     questions = schema.questions()

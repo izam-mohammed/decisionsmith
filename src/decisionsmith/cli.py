@@ -1,4 +1,6 @@
-"""`decisionsmith finetune | bench | status | export | doctor | mcp`. Every command takes `--json`.
+"""`decisionsmith finetune | train | generate | golden | eval | bench | status | export | doctor | mcp`.
+
+Every command takes `--json`.
 
 Exit codes: 0 ok · 1 error · 2 done but not ready (no-go / advice pending) · 3 invalid input · 4 engine unavailable.
 """
@@ -161,6 +163,47 @@ def _generate(args: argparse.Namespace) -> int:
         % (len(rows), path, path, "--labels " + args.labels if args.labels else "--schema " + args.schema),
     )
     return OK if rows else NOT_READY
+
+
+def _golden(args: argparse.Namespace) -> int:
+    from .golden_set import golden
+
+    if bool(args.log) == bool(args.texts):
+        raise ValueError("give a harness log (--log decisions.db) or a file of texts, not both")
+    teacher = _teacher(args)
+    if teacher is None:
+        raise ValueError("golden needs --teacher, the LLM that labels the rows, e.g. --teacher claude-opus-5")
+    schema: Any = _model(args) if args.score else None
+    if schema is None:
+        if bool(args.labels) == bool(args.schema):
+            raise ValueError("give either --labels a,b,c or --schema app.py:Model")
+        schema = [x.strip() for x in args.labels.split(",") if x.strip()] if args.labels else load_schema(args.schema)
+    rows = golden(
+        args.log or args.texts,
+        teacher,
+        args.n,
+        args.strategy,
+        schema=schema,
+        test=args.test,
+        out=args.out,
+        seed=args.seed,
+        verbose=not args.json,
+    )
+    test = sum(r["split"] == "test" for r in rows)
+    _emit(args, {"rows": len(rows), "test": test, "path": os.path.abspath(args.out)}, "")
+    return OK if rows else NOT_READY
+
+
+def _eval(args: argparse.Namespace) -> int:
+    from .predictor import load
+
+    schema = load_schema(args.schema) if args.schema else None
+    model = load(args.model, schema, device=args.device)
+    report = model.evaluate(args.data, target=args.target)
+    if args.out:
+        report.save(args.out)
+    _emit(args, report.to_dict(), str(report))
+    return OK if report.go else NOT_READY
 
 
 def _bench(args: argparse.Namespace) -> int:
@@ -336,6 +379,34 @@ def parser() -> argparse.ArgumentParser:
     g.add_argument("-n", type=int, default=300, help="how many examples to write (default 300)")
     g.add_argument("--out", default="golden.csv", help=".csv (easy to review) or .jsonl")
     g.set_defaults(run=_generate)
+
+    gd = cmd("golden", "pick the texts most worth labelling, label them with your main LLM, write golden.csv")
+    gd.add_argument("texts", nargs="?", help="texts to choose from (.txt, .csv with a text column, .jsonl)")
+    gd.add_argument("--log", help="a harness log to choose from, e.g. decisions.db (real samples from production)")
+    model_args(gd)
+    gd.add_argument("-n", type=int, default=500, help="how many rows to label (default 500)")
+    gd.add_argument(
+        "--strategy",
+        default="uncertain",
+        choices=["uncertain", "disagree", "diverse", "random"],
+        help="uncertain: lowest student confidence first (default); disagree: student vs teacher; "
+        "diverse: across labels and lengths; random",
+    )
+    gd.add_argument("--score", action="store_true", help="with a texts file: score them with --base first")
+    gd.add_argument("--base", default="laya", help="with --score: the model that scores the texts")
+    gd.add_argument("--test", type=float, default=0.2, help="share marked split=test for evaluation (default 0.2)")
+    gd.add_argument("--seed", type=int, default=0)
+    gd.add_argument("--out", default="golden.csv")
+    gd.set_defaults(run=_golden)
+
+    ev = cmd("eval", "evaluate a saved model on labelled data: numbers per field and go/no-go")
+    ev.add_argument("model", help="a folder written by model.save(), e.g. models/ticket-v2")
+    ev.add_argument("data", help="labelled CSV/JSONL; in a golden.csv only split=test rows are used")
+    ev.add_argument("--schema", help="app.py:Ticket, to check it matches the saved model")
+    ev.add_argument("--target", type=float, default=0.97, help="accuracy the thresholds must reach (default 0.97)")
+    ev.add_argument("--out", help="write the report (.json or .html)")
+    ev.add_argument("--device")
+    ev.set_defaults(run=_eval)
 
     b = cmd("bench", "compare engines on labelled data")
     b.add_argument("data")

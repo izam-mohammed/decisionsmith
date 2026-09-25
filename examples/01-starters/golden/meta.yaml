@@ -1,0 +1,4 @@
+title: Golden dataset
+summary: ds.golden picks the texts most worth labelling (from a harness log or a list), the main LLM labels them, and a held-out split keeps evaluation honest.
+needs: [laya, anthropic]
+expect: "golden:"

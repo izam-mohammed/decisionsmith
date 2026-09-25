@@ -94,6 +94,16 @@ class Log:
             out.append(row)
         return out
 
+    def forget(self, decision_id: str | None = None, before: float | None = None) -> int:
+        """Delete one decision (and its labels), or every decision logged before a timestamp. Returns rows deleted."""
+        where, args = ("id = ?", (decision_id,)) if decision_id is not None else ("ts < ?", (before,))
+        with self._lock:
+            ids = [r[0] for r in self._db.execute("SELECT id FROM decisions WHERE %s" % where, args)]
+            for table in ("labels", "trained", "decisions"):
+                self._db.executemany("DELETE FROM %s WHERE id = ?" % table, [(i,) for i in ids])
+            self._db.commit()
+        return len(ids)
+
     def mark_trained(self, ids: Iterable[str], run: str) -> None:
         with self._lock:
             self._db.executemany("INSERT OR IGNORE INTO trained VALUES (?,?)", [(i, run) for i in ids])

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **`ds.golden(source, teacher, n=500, strategy="uncertain")`** picks texts from a harness log, a file or a list
+  (`uncertain`, `disagree`, `diverse`, `random`), labels them with the main LLM and writes `golden.csv` with a
+  `split` column and `labelled_by`. Training skips `split=test` rows; `evaluate` uses only them.
+- **`collect=` on the harness** keeps the text of a random share of decisions plus every unsure or LLM-answered one
+  (`collect=0` stores no text); **`h.forget(id)`** and **`h.forget(older_than_days=30)`** delete decisions.
+- **CLI `decisionsmith golden`** (from `--log` or a texts file) and **`decisionsmith eval`** (a saved model on labelled
+  data; exit code 2 on no-go).
 - **Security: resume state is no longer pickled.** `checkpoint_latest/` now holds `state.safetensors` + `state.json`
   (weights, optimizer, schedule, RNG); the old `state.pt` (`torch.load(weights_only=False)`) is refused, never
   loaded. Training reaches laya's question normalisation through one checked shim with a clear error if laya changes it.

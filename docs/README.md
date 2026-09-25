@@ -4,6 +4,8 @@
 |---|---|
 | [quickstart.md](quickstart.md) | the first ten minutes |
 | [finetune.md](finetune.md) | data formats, head vs full, Kaggle/Colab, the report and go/no-go |
+| [golden.md](golden.md) | a golden dataset: pick the texts worth labelling, label them with your main LLM, hold out a test split |
+| [collect.md](collect.md) | keep a sample of real texts in production; privacy, retention, `h.forget` |
 | [evaluate.md](evaluate.md) | test a model on held-out rows: numbers per field and go/no-go |
 | [save-and-load.md](save-and-load.md) | versioned model folders, `ds.load`, loading with your own class |
 | [guide.md](guide.md) | engines, modes, status, adapt, bench, the log |

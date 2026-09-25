@@ -62,6 +62,7 @@ class Harness(Generic[T]):
         threshold: float = 0.8,
         log: str | os.PathLike[str] | None = "decisions.db",
         audit: float = 0.05,
+        collect: float = 1.0,
     ) -> None:
         from .predictor import Model
 
@@ -82,7 +83,9 @@ class Harness(Generic[T]):
             raise ValueError("threshold must be in (0, 1], got %r" % threshold)
         if not 0.0 <= audit <= 1.0:
             raise ValueError("audit must be in [0, 1], got %r" % audit)
-        self.threshold, self.audit = threshold, audit
+        if not 0.0 <= collect <= 1.0:
+            raise ValueError("collect must be in [0, 1] (the share of texts kept in the log), got %r" % collect)
+        self.threshold, self.audit, self.collect = threshold, audit, collect
         self.modes: dict[str, Mode] = self._modes(mode)
         self.log = Log(log) if log is not None else None
         self._pool: ThreadPoolExecutor | None = None
@@ -263,7 +266,7 @@ class Harness(Generic[T]):
                 {
                     "id": decision_id,
                     "schema": self.schema.name,
-                    "text": text,
+                    "text": text if self._keep_text(source, unsure) else None,
                     "value": {n: top(d) for n, d in value.items()},
                     "source": source,
                     "teacher": self.teacher.name if self.teacher else None,
@@ -282,6 +285,27 @@ class Harness(Generic[T]):
             sure=not unsure,
             latency_ms=latency,
         )
+
+    def _keep_text(self, source: dict[str, str], unsure: bool) -> bool:
+        if self.collect >= 1.0:
+            return True
+        if self.collect <= 0.0:
+            return False
+        return unsure or "teacher" in source.values() or self._random.random() < self.collect
+
+    def forget(self, decision_id: str | None = None, *, older_than_days: float | None = None) -> int:
+        """Delete a logged decision (text, answers, labels): `h.forget(r.id)`, or `h.forget(older_than_days=30)`."""
+        if (decision_id is None) == (older_than_days is None):
+            raise ValueError(
+                "give a decision id or older_than_days, e.g. h.forget(r.id) or h.forget(older_than_days=30)"
+            )
+        log = self._require_log()
+        if decision_id is not None:
+            if not log.forget(decision_id):
+                raise KeyError("no decision with id %r in %s" % (decision_id, log.path))
+            return 1
+        assert older_than_days is not None
+        return log.forget(before=time.time() - older_than_days * 86400)
 
     def _require_log(self) -> Log:
         if self.log is None:
@@ -394,6 +418,7 @@ def harness(
     threshold: float = 0.8,
     log: str | os.PathLike[str] | None = "decisions.db",
     audit: float = 0.05,
+    collect: float = 1.0,
 ) -> Harness[T]:
     """Connect a teacher (any LLM, `ds.LLM(...)`, or Jev) and a student (Laya, or Jev) behind one schema.
 
@@ -402,5 +427,18 @@ def harness(
 
     model = ds.model(["billing", "technical", "sales"])   # base or trained Laya
     h = ds.harness(model, teacher="claude-haiku-4-5")       # it becomes the student; h(text) -> "billing"
+
+    `collect` is the share of texts kept in the log (1.0 keeps all). Below 1, a random `collect` share is kept plus
+    every text the student was unsure of or the teacher answered; the rest are logged without their text. 0 keeps
+    no text at all.
     """
-    return Harness(schema, teacher=teacher, student=student, mode=mode, threshold=threshold, log=log, audit=audit)
+    return Harness(
+        schema,
+        teacher=teacher,
+        student=student,
+        mode=mode,
+        threshold=threshold,
+        log=log,
+        audit=audit,
+        collect=collect,
+    )
