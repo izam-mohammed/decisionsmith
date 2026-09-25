@@ -1,4 +1,4 @@
-"""`ds.golden`: pick the texts most worth labelling, have the main LLM label them, and write a reviewable CSV."""
+"""`ds.golden`: pick the texts most worth labelling, have the main LLM (or a coding agent) label them, write a CSV."""
 
 from __future__ import annotations
 
@@ -132,6 +132,15 @@ def in_test(text: str, share: float) -> bool:
     return _position(text) < share
 
 
+def _held(items: list[_Candidate], test: float) -> set[int]:
+    """Which of `items` are held out for evaluation: by text hash, at least one when there are two or more."""
+    held = {i for i, c in enumerate(items) if not c.trained and in_test(c.text, test)}
+    eligible = [i for i, c in enumerate(items) if not c.trained]
+    if test > 0 and len(items) >= 2 and not held and eligible:
+        held = {min(eligible, key=lambda i: _position(items[i].text))}
+    return held
+
+
 def _check_out(out: str | None, overwrite: bool) -> None:
     if out is None:
         return
@@ -197,14 +206,27 @@ def golden(
     seed: int = 0,
     verbose: bool = True,
 ) -> list[dict[str, Any]]:
-    engine = from_string(teacher)
+    from . import golden_session
+
+    agent = golden_session.agent_of(teacher)
+    engine = None if agent is not None else from_string(teacher)
     if strategy not in STRATEGIES:
         raise ValueError("strategy must be one of %s, got %r" % (STRATEGIES, strategy))
     if n < 1:
         raise ValueError("n must be at least 1")
     if not 0.0 <= test < 1.0:
         raise ValueError("test is the share of rows held out for evaluation, in [0, 1); got %r" % test)
-    _check_out(out, overwrite)
+    if agent is None:
+        _check_out(out, overwrite)
+    elif out is None:
+        raise ValueError("teacher='agent' writes a labelling session next to out; give out='golden.csv'")
+    else:
+        _check_out(out, True)
+        if os.path.exists(golden_session.session_path(out)) and not overwrite:
+            raise FileExistsError(
+                "%s already holds a labelling session; finish it (decisionsmith golden --finish %s), or pass "
+                "overwrite=True (CLI: --overwrite) to start again" % ((golden_session.session_path(out),) * 2)
+            )
     compiled, student = _schema_and_student(schema, source)
     firsts: dict[str, _Candidate] = {}
     for c in _candidates(source, compiled, student):
@@ -218,11 +240,19 @@ def golden(
         )
     rng = random.Random(seed)
     chosen = _choose(pool, n, strategy, rng)
+    if engine is None:
+        held = _held(chosen, test)
+        return golden_session.start(
+            [(c.text, c.human, "test" if i in held else "train") for i, c in enumerate(chosen)],
+            compiled,
+            str(out),
+            agent=agent,
+            strategy=strategy,
+            overwrite=overwrite,
+            verbose=verbose,
+        )
     labelled, failed, first_error = _label_all(chosen, engine, compiled)
-    held = {i for i, (c, _, _) in enumerate(labelled) if not c.trained and in_test(c.text, test)}
-    eligible = [i for i, (c, _, _) in enumerate(labelled) if not c.trained]
-    if test > 0 and len(labelled) >= 2 and not held and eligible:
-        held = {min(eligible, key=lambda i: _position(labelled[i][0].text))}
+    held = _held([c for c, _, _ in labelled], test)
     rows = [
         {
             "id": "g" + text_hash(c.text)[:12],
@@ -258,7 +288,8 @@ def _write(rows: list[dict[str, Any]], path: str, schema: Schema) -> None:
                 rec = {**r, "answers": {k: top(v) for k, v in r["answers"].items()}}
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         else:
-            w = csv.DictWriter(f, fieldnames=["id", "text", *schema.fields, "split", "labelled_by"])
+            extra = ["checked"] if any("checked" in r for r in rows) else []
+            w = csv.DictWriter(f, fieldnames=["id", "text", *schema.fields, "split", "labelled_by", *extra])
             w.writeheader()
             for r in rows:
                 cells = {"id": r["id"], "text": r["text"], **{k: top(v) for k, v in r["answers"].items()}}
@@ -267,6 +298,7 @@ def _write(rows: list[dict[str, Any]], path: str, schema: Schema) -> None:
                         **{k: safe_cell(v) for k, v in cells.items()},
                         "split": r["split"],
                         "labelled_by": r["labelled_by"],
+                        **{k: r.get(k, "") for k in extra},
                     }
                 )
     os.replace(tmp, path)
