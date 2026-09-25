@@ -413,21 +413,48 @@ def test_shown_path_on_another_drive(monkeypatch):
         raise ValueError("Paths don't have the same drive")
 
     monkeypatch.setattr(artifact.os.path, "commonpath", other_drive)
-    assert artifact.shown_path(os.path.join("somewhere", "team-v1")) == "team-v1"
+    assert artifact._shown_path(os.path.join("somewhere", "team-v1")) == "team-v1"
 
 
 def test_portable_base_ids(tmp_path, monkeypatch):
-    assert (
-        artifact.portable("laya") == "laya" and artifact.portable("convaiinnovations/laya") == "convaiinnovations/laya"
-    )
-    assert artifact.portable("laya:multilingual") == "laya:multilingual"
-    assert artifact.portable(str(tmp_path / "base")) == "base"
-    assert artifact.portable("laya:%s" % (tmp_path / "base")) == "laya:base"
-    assert artifact.portable("./runs/v1") == "v1" and artifact.portable("~/ckpt") == "ckpt"
-    assert artifact.portable("C:\\models\\base") in ("base", "C:\\models\\base")
-    (tmp_path / "local").mkdir()
+    p = artifact._portable
+    assert p("laya") == "laya" and p("convaiinnovations/laya") == "convaiinnovations/laya"
+    assert p("laya:multilingual") == "laya:multilingual" and p("laya:%s" % (tmp_path / "base")) == "laya:base"
+    assert p(str(tmp_path / "base")) == "base" and p("./runs/v1") == "v1" and p("~/ckpt") == "ckpt"
+    assert p("C:\\models\\base") == "base" and p("D:/models/base") == "base" and p("..\\up\\base") == "base"
+    assert p(None) is None and p("") == ""
+    (tmp_path / "org" / "repo").mkdir(parents=True)
     monkeypatch.chdir(tmp_path)
-    assert artifact.portable("local") == "local" and artifact.portable(None) is None and artifact.portable("") == ""
+    assert p("org/repo") == "org/repo"
+
+
+def test_public_report_drops_paths_from_provenance_and_title(tmp_path):
+    base = str(tmp_path / "tiny0")
+    report = {
+        "kind": "finetune",
+        "title": "finetune: %s -> %s" % (base, tmp_path / "run"),
+        "path": str(tmp_path / "run"),
+        "details": {"provenance": {"base": base, "base_id": base, "seed": 0}, "train_ids": ["a"]},
+    }
+    out = artifact._public(report)
+    assert out["title"] == "finetune: tiny0 -> run" and out["path"] is None
+    assert out["details"]["provenance"] == {"base": "tiny0", "base_id": "tiny0", "seed": 0}
+    other = artifact._public({"title": "evaluate: laya:%s on 3 rows" % base, "details": {}})
+    assert other["title"] == "evaluate: laya:tiny0 on 3 rows"
+    assert artifact._public({"title": "bench on %s" % base})["title"] == "bench on tiny0"
+
+
+def test_save_cleans_its_temp_folder_on_any_failure(tiny, tmp_path, monkeypatch):
+    m = ds.model(LABELS, str(tiny))
+    for boom in (OSError("disk full"), KeyboardInterrupt()):
+
+        def fail(*a, error=boom, **k):
+            raise error
+
+        monkeypatch.setattr(artifact, "_card", fail)
+        with pytest.raises(type(boom)):
+            m.save(str(tmp_path / "team"), verbose=False)
+        assert not [p for p in os.listdir(tmp_path) if ".tmp-" in p] and not os.path.exists(tmp_path / "team-v1")
 
 
 def test_saved_folder_has_no_local_base_path_and_still_loads_and_retrains(tiny, tmp_path):
@@ -435,6 +462,8 @@ def test_saved_folder_has_no_local_base_path_and_still_loads_and_retrains(tiny, 
     schema = ds.model(LABELS, "fake").schema.model
     run = str(tmp_path / "run")
     ds.finetune(ds.model(LABELS, "fake")._rows(first), schema, base=str(tiny), out=run, epochs=1, verbose=False)
+    written = json.loads(open(os.path.join(run, "rl_agent_config.json")).read())["decisionsmith"]
+    assert written["base"] == written["base_id"] == os.path.basename(str(tiny))
     m = ds.model(LABELS, run)
     m.trained = run
     path = m.save(str(tmp_path / "models" / "team"), verbose=False)
@@ -444,8 +473,14 @@ def test_saved_folder_has_no_local_base_path_and_still_loads_and_retrains(tiny, 
     assert meta["base_model"] == name and meta["training"]["base"] == name and meta["training"]["base_id"] == name
     assert cfg["decisionsmith"]["base"] == name and cfg["decisionsmith"]["base_id"] == name
     assert cfg["decisionsmith"]["text_hashes"]
-    for file in ("decisionsmith.json", "rl_agent_config.json", "MODEL_CARD.md"):
-        assert str(tmp_path) not in open(os.path.join(path, file), encoding="utf-8").read()
+    home = os.path.expanduser("~")
+    for folder, _, files in os.walk(path):
+        for file in files:
+            data = open(os.path.join(folder, file), "rb").read()
+            for secret in (str(tmp_path), str(tiny), home):
+                assert secret.encode() not in data, (file, secret)
+    train_report = json.loads(open(os.path.join(path, "train_report.json")).read())
+    assert train_report["details"]["provenance"]["base"] == name and name in train_report["title"]
     loaded = ds.load(path)
     assert loaded.predict("you charged me twice") in LABELS
     again = str(tmp_path / "again")

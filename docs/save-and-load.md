@@ -49,7 +49,9 @@ means your home folder.
 
 The saved reports hold numbers only: no texts (the worst examples stay in memory as `report.details["worst"]`),
 no training row ids and no local paths. `rl_agent_config.json` holds one-way fingerprints of the training texts
-(see [evaluate](evaluate.md#same-text)). Treat the folder like the data it was trained on before you share it.
+(see [evaluate](evaluate.md#same-text)). A base checkpoint that was a local folder is recorded by its folder name
+only; `laya` and hub ids like `convaiinnovations/laya` are kept as they are. Treat the folder like the data it was
+trained on before you share it.
 | `MODEL_CARD.md` | what the model decides, how it was evaluated, how to load it, credits |
 
 ## Loading with your own class
