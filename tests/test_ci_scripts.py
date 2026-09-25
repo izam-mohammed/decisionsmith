@@ -33,6 +33,8 @@ def test_one_integration_runs_only_that_one(monkeypatch, capsys):
         "tests\\integrations\\test_pydantic_ai.py",
     ]
     assert run(monkeypatch, capsys, paths) == ["langchain", "pydantic-ai"]
+    data = ["src/decisionsmith/integrations/duckdb.py", "examples/04-integrations/qdrant/in_framework_rag_filter.py"]
+    assert run(monkeypatch, capsys, data) == ["duckdb", "qdrant"]
 
 
 def test_core_change_runs_everything(monkeypatch, capsys):

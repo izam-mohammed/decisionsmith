@@ -50,4 +50,9 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
+      - if: matrix.name == 'spark'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
       - run: scripts/integration.sh ${{ matrix.name }} .venv-int
