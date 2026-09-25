@@ -1,0 +1,11 @@
+decisionsmith
+Copyright 2026 Izam Mohammed
+
+This product is licensed under the Apache License, Version 2.0.
+
+decisionsmith works with Laya (https://github.com/NandhaKishorM/laya), Apache-2.0,
+by Nandakishor M / Convai Innovations. Fine-tuned checkpoints written by decisionsmith
+are derived from Laya checkpoints and keep their licences.
+
+Jev and TypeSafe are trademarks of their owners. decisionsmith is an independent project,
+not affiliated with TypeSafe AI or Convai Innovations.

@@ -1,0 +1,19 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: tag matches version
+        run: test "v$(uv version --short)" = "${GITHUB_REF_NAME}"
+      - run: uv build
+      - run: uv publish --trusted-publishing always
