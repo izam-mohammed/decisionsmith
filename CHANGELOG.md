@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Saved models, review fixes.** `model.train()` after `evaluate()` forgets the old report and thresholds; `ds.load`
+  with a class compares every question (descriptions and docstring too) and lists the differences; versions are
+  numbered one above the highest; a loaded model saves as the next version of its own name; a labels model is named
+  after its labels; `save` writes atomically, retries the next number on a clash, expands `~` and prints
+  `saved to ...`; saved reports hold no texts, row ids or local paths; `Literal` int values round-trip; the model
+  card no longer claims a licence for your model; `ds.model(labels, saved_folder)` loads it like `ds.load`;
+  `Model.info` is now `Model.meta`.
+- **`evaluate` picks thresholds on one half of the rows and reports coverage on the other**, and adds
+  `accuracy_when_sure`.
+- **An explicit `threshold=` on `ds.harness` wins over a loaded model's saved thresholds** (`h.adapt()` results on
+  the log still come first).
+- **Docs are tested:** every Python block in README.md and docs/ runs offline in the test suite.
 - **`ds.golden(source, teacher, n=500, strategy="uncertain")`** picks texts from a harness log, a file or a list
   (`uncertain`, `disagree`, `diverse`, `random`), labels them with the main LLM and writes `golden.csv` with a
   `split` column (`train`, `calib`, `test`; `dev`/`val` mean `calib`) and `labelled_by` (`human`, `llm:<model>`).

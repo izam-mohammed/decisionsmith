@@ -490,7 +490,7 @@ def test_cli_eval(tiny, tmp_path, capsys):
     code, text = run(capsys, "eval", path, str(data), "--out", report, "--device", "cpu")
     assert code == cli.NOT_READY and "evaluate:" in text and os.path.exists(report)
     code, text = run(capsys, "eval", path, str(data), "--schema", "tests/conftest.py:Ticket", "--json")
-    assert code == cli.INVALID and "does not match" in json.loads(text)["error"]["message"]
+    assert code == cli.INVALID and "does not ask the same questions" in json.loads(text)["error"]["message"]
 
 
 def test_cli_eval_go(tmp_path, capsys, monkeypatch):

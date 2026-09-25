@@ -6,7 +6,6 @@
 **Flow:** developer flow, step 3 (define, data, **golden**, train, evaluate, save). Its input is often the real
 samples the production flow collected.
 
-<!-- no-test: needs a decisions.db from a harness; examples/01-starters/golden runs the same flow offline -->
 
 ```python
 import decisionsmith as ds
