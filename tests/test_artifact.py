@@ -368,3 +368,49 @@ def test_threshold_is_chosen_on_one_half_and_reported_on_the_other():
     assert f["threshold"] == 0.95 and f["coverage"] == 1.0 and f["accuracy_when_sure"] == 1.0
     one = ds.model(LABELS, right).evaluate([(texts[0], truth(texts[0])["team"])])
     assert one.details["fields"]["label"]["threshold_rows"] == 1 == one.details["fields"]["label"]["coverage_rows"]
+
+
+def test_model_card_has_no_absolute_paths(tiny, tmp_path, monkeypatch):
+    m = ds.model(LABELS, str(tiny))
+    outside = m.save(str(tmp_path / "far" / "team"), verbose=False)
+    card = open(os.path.join(outside, "MODEL_CARD.md"), encoding="utf-8").read()
+    assert str(tmp_path) not in card and 'ds.load("team-v1")' in card and str(tiny) not in card
+    monkeypatch.chdir(tmp_path)
+    inside = m.save(os.path.join("models", "team"), verbose=False)
+    card = open(os.path.join(inside, "MODEL_CARD.md"), encoding="utf-8").read()
+    assert 'ds.load("models/team-v1")' in card and str(tmp_path) not in card
+    assert artifact._base_name("laya:multilingual") == "laya:multilingual" and artifact._base_name(None) == "laya"
+    assert artifact._base_name(str(tiny)) == os.path.basename(str(tiny))
+
+
+def test_two_threads_saving_the_same_name_get_different_versions(tiny, tmp_path):
+    import threading
+
+    m = ds.model(LABELS, str(tiny))
+    got, errors = [], []
+    start = threading.Barrier(2)
+
+    def one():
+        start.wait()
+        try:
+            got.append(m.save(str(tmp_path / "team"), verbose=False))
+        except Exception as e:  # pragma: no cover
+            errors.append(e)
+
+    threads = [threading.Thread(target=one) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors and sorted(got) == [str(tmp_path / "team-v1"), str(tmp_path / "team-v2")]
+    assert not [p for p in os.listdir(tmp_path) if ".tmp-" in p]
+    for path in got:
+        assert json.loads(open(os.path.join(path, "decisionsmith.json")).read())["name"] == os.path.basename(path)
+
+
+def test_shown_path_on_another_drive(monkeypatch):
+    def other_drive(paths):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(artifact.os.path, "commonpath", other_drive)
+    assert artifact.shown_path(os.path.join("somewhere", "team-v1")) == "team-v1"

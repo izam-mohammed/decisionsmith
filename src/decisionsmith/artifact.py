@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
@@ -113,7 +114,7 @@ def _card(meta: dict[str, Any], report: Report | None, where: str) -> str:
         "",
         "# %s" % meta["name"],
         "",
-        "A decision model made with decisionsmith, fine-tuned from `%s`." % (meta.get("base_model") or "laya"),
+        "A decision model made with decisionsmith, fine-tuned from `%s`." % _base_name(meta.get("base_model")),
         "",
         "- %s" % what,
         "- saved: %s, decisionsmith %s" % (meta["created"][:10], meta["decisionsmith_version"]),
@@ -139,6 +140,23 @@ def _card(meta: dict[str, Any], report: Report | None, where: str) -> str:
         "",
     ]
     return "\n".join(lines)
+
+
+def _base_name(base: Any) -> str:
+    if not base:
+        return "laya"
+    text = str(base)
+    return os.path.basename(os.path.normpath(text)) if os.path.isabs(text) or os.sep in text else text
+
+
+def shown_path(path: str) -> str:
+    """How a saved folder is named in its model card: relative to the working folder if inside it, else its name."""
+    full, here = os.path.abspath(path), os.path.abspath(os.getcwd())
+    try:
+        inside = os.path.commonpath([full, here]) == here
+    except ValueError:
+        inside = False
+    return os.path.relpath(full, here) if inside else os.path.basename(full)
 
 
 def _public(report: dict[str, Any]) -> dict[str, Any]:
@@ -186,8 +204,7 @@ def save(model: Model, path: str | os.PathLike[str] | None, *, verbose: bool = T
     dest, numbered = version_path(path if path is not None else _default_path(model), name)
     parent_dir = os.path.dirname(os.path.abspath(dest))
     os.makedirs(parent_dir, exist_ok=True)
-    tmp = os.path.join(parent_dir, ".%s.tmp-%d" % (os.path.basename(dest), os.getpid()))
-    shutil.rmtree(tmp, ignore_errors=True)
+    tmp = os.path.join(parent_dir, ".%s.tmp-%s" % (os.path.basename(dest), uuid.uuid4().hex))
     shutil.copytree(source, tmp, ignore=shutil.ignore_patterns("checkpoint_latest", META, "report.*", "*.tmp-*"))
     cfg_path = os.path.join(source, "rl_agent_config.json")
     trained = (_json(cfg_path).get("decisionsmith") or {}) if os.path.exists(cfg_path) else {}
@@ -220,7 +237,7 @@ def save(model: Model, path: str | os.PathLike[str] | None, *, verbose: bool = T
         }
         _write_json(os.path.join(tmp, META), meta)
         with open(os.path.join(tmp, "MODEL_CARD.md"), "w", encoding="utf-8") as f:
-            f.write(_card(meta, report, dest))
+            f.write(_card(meta, report, shown_path(dest)))
         try:
             if os.path.exists(dest):
                 raise FileExistsError(dest)
