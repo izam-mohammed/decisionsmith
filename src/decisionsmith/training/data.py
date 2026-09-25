@@ -26,6 +26,7 @@ class Row:
     targets: dict[str, list[float]]
     group: str | None = None
     split: str | None = None
+    labelled_by: str | None = None
 
 
 SPLITS = ("train", "calib", "test")
@@ -198,6 +199,7 @@ def load(
     everything: list[Row] = []
     for n, (where, rec) in enumerate(records):
         held = _split_of(rec, where) or ("train" if marked else "")
+        by = str(rec.get("labelled_by") or "").strip() or None
         rid = str(rec.get("id") or "row%d" % n)
         group = None if group_by is None else str(rec.get(group_by, "")) or None
         if "questions" in rec and "gold" in rec:
@@ -214,7 +216,7 @@ def load(
                     "answers": {k: v for k, v in rec.items() if k in compiled.fields and v not in (None, "")},
                 }
             row = _from_answers(compiled, rec, rid, where, group)
-        row.split = held or None
+        row.split, row.labelled_by = held or None, by
         if row.targets:
             everything.append(row)
     return [r for r in _merge_repeats(everything) if _keep(r, split, marked)]

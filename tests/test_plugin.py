@@ -24,11 +24,25 @@ def test_manifests():
 
 def test_skills_commands_agents():
     skills = sorted(PLUGIN.glob("skills/*/SKILL.md"))
-    assert len(skills) == 6
+    assert len(skills) == 7
     for s in skills:
         meta, body = front(s)
         assert meta["name"] == s.parent.name and 20 < len(meta["description"]) < 1024 and "Laya" in body
     commands = sorted(PLUGIN.glob("commands/*.md"))
-    assert len(commands) == 7 and all(front(c)[0]["description"] for c in commands)
+    assert len(commands) == 8 and all(front(c)[0]["description"] for c in commands)
     agents = sorted(PLUGIN.glob("agents/*.md"))
-    assert len(agents) == 3 and all(front(a)[0]["name"] == a.stem for a in agents)
+    assert len(agents) == 6 and all(front(a)[0]["name"] == a.stem for a in agents)
+
+
+def test_build_skill_uses_only_real_mcp_tools():
+    import re
+
+    from decisionsmith import mcp
+
+    names = {fn.__name__ for fn in mcp.TOOLS}
+    files = [PLUGIN / "skills" / "decisionsmith-build" / "SKILL.md", PLUGIN / "commands" / "build.md"]
+    files += [PLUGIN / "agents" / ("%s.md" % a) for a in ("labeler", "data-writer", "evaluator")]
+    used = {m for f in files for m in re.findall(r"`([a-z_]+)\(", f.read_text())}
+    assert used and used <= names, used - names
+    skill = files[0].read_text()
+    assert skill.count("**Approval.**") == 3 and "## Honesty rules" in skill

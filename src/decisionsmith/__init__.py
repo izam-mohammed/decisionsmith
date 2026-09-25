@@ -46,6 +46,9 @@ def golden(
     lengths) or `random`. A `test` share (0.2) is marked `split=test`; training skips it and `evaluate` uses only it.
     Human labels already in the log are used as they are. An existing `out` file is never overwritten unless
     `overwrite=True`.
+
+    `teacher="agent"` (or `"agent:<name>"`) calls no LLM: it writes a labelling session (`golden.session.json`) that a
+    coding agent labels through the MCP tools; `decisionsmith golden --finish golden.session.json` writes `out`.
     """
     from .golden_set import golden as _golden
 

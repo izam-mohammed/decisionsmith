@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **A coding agent can build the model, no LLM API key.** `ds.golden(..., teacher="agent")` and
+  `decisionsmith golden --teacher agent` write a labelling session (`golden.session.json`) instead of calling an LLM;
+  the agent labels it through new MCP tools (`golden_start`, `golden_batch`, `golden_submit`, `golden_add`,
+  `golden_status`, `golden_finish`), with a blind second pass on a share of the rows; `decisionsmith golden --finish`
+  writes `golden.csv` (plus a `checked` column; fields the passes disagree on are left blank). Examples the agent
+  writes are marked synthetic, never used as test rows and kept only when the re-check agrees. New MCP tools
+  `data_check` (balance, repeats, leaks, lengths), `evaluate` (with `save=`) and `model_info`; `finetune` takes
+  `labels` or a session file. `model.evaluate` reports accuracy per `labelled_by`. Claude Code plugin:
+  `/decisionsmith:build`, the `decisionsmith-build` skill and `labeler`, `data-writer`, `evaluator` subagents;
+  AGENTS.md has the same playbook for Codex, Gemini CLI and Cursor.
 - **Saved models, review fixes.** `model.train()` after `evaluate()` forgets the old report and thresholds; `ds.load`
   with a class compares every question (descriptions and docstring too) and lists the differences; versions are
   numbered one above the highest; a loaded model saves as the next version of its own name; a labels model is named

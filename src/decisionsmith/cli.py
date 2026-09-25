@@ -168,15 +168,27 @@ def _generate(args: argparse.Namespace) -> int:
 
 
 def _golden(args: argparse.Namespace) -> int:
+    from . import golden_session
     from .golden_set import golden
 
+    if args.finish:
+        if args.log or args.texts:
+            raise ValueError("--finish takes only the session file, e.g. --finish golden.session.json")
+        done = golden_session.finish(args.finish, out=args.out, overwrite=args.overwrite)
+        _emit(args, done, done["message"])
+        return OK
+    out = args.out or "golden.csv"
     if bool(args.log) == bool(args.texts):
         raise ValueError("give a harness log (--log decisions.db) or a file of texts, not both")
     if args.log and args.score:
         raise ValueError("--score is for a texts file; a harness log already has the student's confidences")
     teacher = _teacher(args)
     if teacher is None:
-        raise ValueError("golden needs --teacher, the LLM that labels the rows, e.g. --teacher claude-opus-5")
+        raise ValueError(
+            "golden needs --teacher: the LLM that labels the rows (e.g. --teacher claude-opus-5), or --teacher agent "
+            "to have a coding agent label them"
+        )
+    agent = golden_session.agent_of(teacher)
     schema: Any = _model(args) if args.score else None
     if schema is None:
         if bool(args.labels) == bool(args.schema):
@@ -189,13 +201,18 @@ def _golden(args: argparse.Namespace) -> int:
         args.strategy,
         schema=schema,
         test=args.test,
-        out=args.out,
+        out=out,
         overwrite=args.overwrite,
         seed=args.seed,
         verbose=not args.json,
     )
     test = sum(r["split"] == "test" for r in rows)
-    _emit(args, {"rows": len(rows), "test": test, "path": os.path.abspath(args.out)}, "")
+    if agent is not None:
+        session = golden_session.session_path(out)
+        payload = {"rows": len(rows), "test": test, "session": os.path.abspath(session), "next": "golden_batch"}
+        _emit(args, payload, "")
+        return OK
+    _emit(args, {"rows": len(rows), "test": test, "path": os.path.abspath(out)}, "")
     return OK if rows else NOT_READY
 
 
@@ -385,7 +402,10 @@ def parser() -> argparse.ArgumentParser:
     g.add_argument("--out", default="golden.csv", help=".csv (easy to review) or .jsonl")
     g.set_defaults(run=_generate)
 
-    gd = cmd("golden", "pick the texts most worth labelling, label them with your main LLM, write golden.csv")
+    gd = cmd(
+        "golden",
+        "pick the texts most worth labelling, label them with your main LLM (or a coding agent), write golden.csv",
+    )
     gd.add_argument("texts", nargs="?", help="texts to choose from (.txt, .csv with a text column, .jsonl)")
     gd.add_argument("--log", help="a harness log to choose from, e.g. decisions.db (real samples from production)")
     model_args(gd)
@@ -401,8 +421,13 @@ def parser() -> argparse.ArgumentParser:
     gd.add_argument("--base", default="laya", help="with --score: the model that scores the texts")
     gd.add_argument("--test", type=float, default=0.2, help="share marked split=test for evaluation (default 0.2)")
     gd.add_argument("--seed", type=int, default=0)
-    gd.add_argument("--out", default="golden.csv", help=".csv (easy to review) or .jsonl")
+    gd.add_argument("--out", help=".csv (easy to review) or .jsonl (default golden.csv)")
     gd.add_argument("--overwrite", action="store_true", help="replace an existing --out file")
+    gd.add_argument(
+        "--finish",
+        metavar="SESSION",
+        help="write golden.csv from a session a coding agent labelled (started with --teacher agent)",
+    )
     gd.set_defaults(run=_golden)
 
     ev = cmd("eval", "evaluate a saved model on labelled data: numbers per field and go/no-go")
