@@ -15,13 +15,13 @@ from decisionsmith.training import data
 from tests.conftest import Ticket, truth
 
 
-class Color(enum.Enum):
+class Colour(enum.Enum):
     red = "red"
     blue = "blue"
 
 
 class Mixed(BaseModel):
-    color: Color
+    colour: Colour
     stars: Literal[1, 2, 3]
     weight: Literal[0.5, 1.5]
     odd: Literal["a", 1]
@@ -40,10 +40,10 @@ class Counting(FakeEngine):
 
 def test_plain_value_types_and_fields():
     m = ds.model(Mixed, FakeEngine())
-    assert _base.plain(Color.red) == "red" and _base.plain(3) == 3
-    assert [_base.value_type(m, f) for f in ["color", "stars", "weight", "odd", "ok"]] == [str, int, float, str, bool]
-    assert _base.pick_fields(m) == ["color", "stars", "weight", "odd", "ok"]
-    assert _base.pick_fields(m, "ok") == ["ok"] and _base.pick_fields(m, ["ok", "color"]) == ["ok", "color"]
+    assert _base.plain(Colour.red) == "red" and _base.plain(3) == 3
+    assert [_base.value_type(m, f) for f in ["colour", "stars", "weight", "odd", "ok"]] == [str, int, float, str, bool]
+    assert _base.pick_fields(m) == ["colour", "stars", "weight", "odd", "ok"]
+    assert _base.pick_fields(m, "ok") == ["ok"] and _base.pick_fields(m, ["ok", "colour"]) == ["ok", "colour"]
     for bad in ("nope", []):
         with pytest.raises(ValueError, match="unknown fields"):
             _base.pick_fields(m, bad)
@@ -65,9 +65,9 @@ def test_decide_columns_with_a_model_batches_and_skips_empty_texts():
 def test_decide_columns_applies_a_saved_calibration_and_plain_values():
     m = ds.model(Mixed, FakeEngine(confidence=0.9))
     m.calibration = {"ok": {"temperature": 3.0}}
-    got = _base.decide_columns(m, ["x"], ["ok", "color"])
-    assert got["ok_confidence"][0] < 0.9 and got["color_confidence"][0] == 0.9
-    assert got["color"][0] in ("red", "blue") and isinstance(got["ok"][0], bool)
+    got = _base.decide_columns(m, ["x"], ["ok", "colour"])
+    assert got["ok_confidence"][0] < 0.9 and got["colour_confidence"][0] == 0.9
+    assert got["colour"][0] in ("red", "blue") and isinstance(got["ok"][0], bool)
 
 
 def test_decide_columns_with_a_harness_keeps_sources(db):
