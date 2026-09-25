@@ -69,7 +69,7 @@ Temperatures are fitted on the calibration split only, per question type (and pe
 ## On a GPU (Kaggle or Colab)
 
 1. `h.export("train.jsonl")` (or use your CSV).
-2. Open `examples/finetune_kaggle_colab.ipynb` on Kaggle (GPU T4 x2) or Colab (T4), add the file, run all.
+2. Open [`notebooks/04_finetune_full_gpu.ipynb`](../notebooks/04_finetune_full_gpu.ipynb) on Kaggle (GPU T4 x2) or Colab (T4), add the file, run all.
    With two GPUs it trains data-parallel (`torchrun -m decisionsmith.cli finetune ...`).
 3. Download `runs/v1.zip`, unzip, `student="laya:./runs/v1"`.
 

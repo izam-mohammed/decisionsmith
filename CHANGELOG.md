@@ -12,6 +12,10 @@
   `labels` or a session file. `model.evaluate` reports accuracy per `labelled_by`. Claude Code plugin:
   `/decisionsmith:build`, the `decisionsmith-build` skill and `labeler`, `data-writer`, `evaluator` subagents;
   AGENTS.md has the same playbook for Codex, Gemini CLI and Cursor.
+- **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,
+  multilingual heads, typed-decisions reproduction and bench. The laptop ones keep outputs from real runs; CI runs
+  every notebook offline. The Kaggle/Colab notebook moved from `examples/finetune_kaggle_colab.ipynb` to
+  `notebooks/04_finetune_full_gpu.ipynb`.
 - **Saved models, review fixes.** `model.train()` after `evaluate()` forgets the old report and thresholds; `ds.load`
   with a class compares every question (descriptions and docstring too) and lists the differences; versions are
   numbered one above the highest; a loaded model saves as the next version of its own name; a labels model is named
