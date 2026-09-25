@@ -6,6 +6,9 @@
   FastAPI + Uvicorn): `POST /v1/decide`, a Jev-compatible `POST /v1/systemone`, `POST /v1/label`, `GET /v1/status`,
   `GET /health`, Prometheus `GET /metrics` and OpenAPI docs; optional bearer key from `DECISIONSMITH_API_KEY`, body
   and text size limits, JSON errors with a fix. See docs/serve.md.
+
+## 0.1.0 (25/09/2026)
+
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,
   multilingual heads, typed-decisions reproduction and bench. The laptop ones keep outputs from real runs; CI runs
   every notebook offline. The Kaggle/Colab notebook moved from `examples/finetune_kaggle_colab.ipynb` to

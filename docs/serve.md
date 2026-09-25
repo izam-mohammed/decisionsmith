@@ -20,6 +20,9 @@ curl -s localhost:8000/v1/decide -H 'content-type: application/json' -d '{"text"
 
 The numbers in that output are an illustration of the shape, not a measurement.
 
+`serve` is new since decisionsmith 0.1.0 on PyPI. Until the next release, install it from GitHub:
+`uv add "decisionsmith[serve,laya] @ git+https://github.com/izam-mohammed/decisionsmith"`.
+
 ## The same thing from Python
 
 `decisionsmith.serve.app(...)` returns the server as an ASGI app (FastAPI). Give it a saved model folder, a
