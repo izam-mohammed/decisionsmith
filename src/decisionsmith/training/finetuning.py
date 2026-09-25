@@ -79,6 +79,15 @@ def _evaluate(
     return out
 
 
+def _base_hashes(base_id: str) -> set[str]:
+    """Texts the base checkpoint was already trained on, so a retrained model remembers them too."""
+    cfg = os.path.join(base_id, "rl_agent_config.json")
+    if not os.path.isfile(cfg):
+        return set()
+    with open(cfg, encoding="utf-8") as f:
+        return set((json.load(f).get("decisionsmith") or {}).get("text_hashes") or [])
+
+
 def _data_hash(rows: Sequence[data_mod.Row]) -> str:
     h = hashlib.sha256()
     for r in rows:
@@ -265,6 +274,7 @@ def finetune(
         "base_id": base_id,
         "subfolder": sub,
         "data_hash": _data_hash(rows),
+        "text_hashes": sorted({data_mod.text_hash(r.text) for r in rows} | _base_hashes(base_id)),
         "seed": seed,
         "train": "head" if head_only else "full",
         "loss": loss,

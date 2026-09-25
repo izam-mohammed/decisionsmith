@@ -117,8 +117,15 @@ def test_files_and_ids(tmp_path):
         load(str(bad), Ticket)
     with pytest.raises(DataError, match="needs a schema"):
         load([{"text": "x", "answers": {"team": "sales"}}])
-    with pytest.raises(DataError, match="unique"):
-        load([{"id": "a", "text": "x", "answers": {"team": "sales"}}] * 2, Ticket)
+    assert len(load([{"id": "a", "text": "x", "answers": {"team": "sales"}}] * 2, Ticket)) == 1
+    with pytest.raises(DataError, match="appears twice with different text or labels"):
+        load(
+            [
+                {"id": "a", "text": "x", "answers": {"team": "sales"}},
+                {"id": "a", "text": "y", "answers": {"team": "billing"}},
+            ],
+            Ticket,
+        )
 
 
 def _rows(n, group=None):

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import os
 import random
 import time
 import uuid
+import warnings
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Generic, Literal, TypeVar, cast
@@ -30,6 +32,11 @@ MIN_FINETUNE_ROWS = 50
 Job = tuple[Engine, str, list[str], Any]
 
 logger = logging.getLogger("decisionsmith")
+
+
+def sampled(decision_id: str, share: float) -> bool:
+    """Whether `collect=share` keeps this decision's text by chance: a stable function of the id, not a random draw."""
+    return int(hashlib.sha256(decision_id.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF < share
 
 
 class Result(BaseModel, Generic[T]):
@@ -62,6 +69,7 @@ class Harness(Generic[T]):
         threshold: float = 0.8,
         log: str | os.PathLike[str] | None = "decisions.db",
         audit: float = 0.05,
+        collect: float = 1.0,
     ) -> None:
         from .predictor import Model
 
@@ -82,7 +90,9 @@ class Harness(Generic[T]):
             raise ValueError("threshold must be in (0, 1], got %r" % threshold)
         if not 0.0 <= audit <= 1.0:
             raise ValueError("audit must be in [0, 1], got %r" % audit)
-        self.threshold, self.audit = threshold, audit
+        if not 0.0 <= collect <= 1.0:
+            raise ValueError("collect must be in [0, 1] (the share of texts kept in the log), got %r" % collect)
+        self.threshold, self.audit, self.collect = threshold, audit, collect
         self.modes: dict[str, Mode] = self._modes(mode)
         self.log = Log(log) if log is not None else None
         self._pool: ThreadPoolExecutor | None = None
@@ -263,7 +273,7 @@ class Harness(Generic[T]):
                 {
                     "id": decision_id,
                     "schema": self.schema.name,
-                    "text": text,
+                    "text": text if self._keep_text(decision_id, adapted, sure, t.dists) else None,
                     "value": {n: top(d) for n, d in value.items()},
                     "source": source,
                     "teacher": self.teacher.name if self.teacher else None,
@@ -282,6 +292,39 @@ class Harness(Generic[T]):
             sure=not unsure,
             latency_ms=latency,
         )
+
+    def _keep_text(
+        self,
+        decision_id: str | None,
+        student: dict[str, Distribution],
+        sure: dict[str, bool],
+        teacher: dict[str, Distribution],
+    ) -> bool:
+        if self.collect >= 1.0:
+            return True
+        if self.collect <= 0.0:
+            return False
+        if not all(sure.values()):
+            return True
+        if any(n in teacher and top(d) != top(teacher[n]) for n, d in student.items()):
+            return True
+        return sampled(decision_id or "", self.collect)
+
+    def forget(self, decision_id: str | None = None, *, older_than_days: float | None = None) -> int:
+        """Delete a logged decision (text, answers, labels): `h.forget(r.id)`, or `h.forget(older_than_days=30)`."""
+        if older_than_days is not None and older_than_days < 0:
+            raise ValueError("older_than_days must be 0 or more, got %r" % older_than_days)
+        if (decision_id is None) == (older_than_days is None):
+            raise ValueError(
+                "give a decision id or older_than_days, e.g. h.forget(r.id) or h.forget(older_than_days=30)"
+            )
+        log = self._require_log()
+        if decision_id is not None:
+            if not log.forget(decision_id):
+                raise KeyError("no decision with id %r in %s" % (decision_id, log.path))
+            return 1
+        assert older_than_days is not None
+        return log.forget(before=time.time() - older_than_days * 86400)
 
     def _require_log(self) -> Log:
         if self.log is None:
@@ -303,8 +346,20 @@ class Harness(Generic[T]):
         )
 
     def export(self, path: str, format: Literal["answers", "typed-decisions"] = "answers") -> int:
-        """Write every decision with a label (human first, else teacher) as training JSONL. Returns rows written."""
-        return export(self.schema, self._require_log(), path, format)
+        """Write every decision with a label (human first, else teacher) as training JSONL. Returns rows written.
+
+        Decisions logged without their text (see `collect=`) can't be exported.
+        """
+        log = self._require_log()
+        n = export(self.schema, log, path, format)
+        if n == 0 and any(r["text"] is None for r in log.rows(self.schema.name)):
+            warnings.warn(
+                "exported 0 rows: the logged decisions have no text (this harness or an earlier one used collect=0 "
+                "or a low collect); raise collect= to keep texts for training",
+                UserWarning,
+                stacklevel=2,
+            )
+        return n
 
     def adapt(self, target: float = 0.97) -> Report:
         """Fit per-field calibration and cascade thresholds from the log. Changes confidence, never answers."""
@@ -394,6 +449,7 @@ def harness(
     threshold: float = 0.8,
     log: str | os.PathLike[str] | None = "decisions.db",
     audit: float = 0.05,
+    collect: float = 1.0,
 ) -> Harness[T]:
     """Connect a teacher (any LLM, `ds.LLM(...)`, or Jev) and a student (Laya, or Jev) behind one schema.
 
@@ -402,5 +458,18 @@ def harness(
 
     model = ds.model(["billing", "technical", "sales"])   # base or trained Laya
     h = ds.harness(model, teacher="claude-haiku-4-5")       # it becomes the student; h(text) -> "billing"
+
+    `collect` is the share of texts kept in the log (1.0 keeps all). Below 1, a `collect` share (picked from the
+    decision id) is kept plus every text the student was unsure of or answered differently from the teacher; the
+    rest are logged without their text. With no student (teacher mode) only the share is kept. 0 keeps no text.
     """
-    return Harness(schema, teacher=teacher, student=student, mode=mode, threshold=threshold, log=log, audit=audit)
+    return Harness(
+        schema,
+        teacher=teacher,
+        student=student,
+        mode=mode,
+        threshold=threshold,
+        log=log,
+        audit=audit,
+        collect=collect,
+    )

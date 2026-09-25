@@ -27,7 +27,9 @@ def gold(schema: Schema, row: dict[str, Any]) -> dict[str, Distribution]:
 
 def gold_rows(schema: Schema, log: Log) -> list[dict[str, Any]]:
     rows = ((row, gold(schema, row)) for row in log.rows(schema.name))
-    return [{"id": row["id"], "text": row["text"], "answers": answers} for row, answers in rows if answers]
+    return [
+        {"id": row["id"], "text": row["text"], "answers": answers} for row, answers in rows if answers and row["text"]
+    ]
 
 
 def export(schema: Schema, log: Log, path: str, format: str = "answers") -> int:

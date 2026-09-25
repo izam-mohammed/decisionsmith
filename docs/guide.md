@@ -54,7 +54,8 @@ skipped.
 
 ## Bench
 
-`ds.bench(Ticket, "labelled.csv", ["claude-haiku-4-5", "jev", "laya", "laya:./runs/v1"])` runs each engine
+`ds.bench(Ticket, "labelled.csv", ["claude-haiku-4-5", "jev", "laya", "laya:./runs/v1"])` (with a `split` column,
+only the `split=test` rows) runs each engine
 zero-shot on the same rows: accuracy, macro-F1, ECE, coverage and accuracy at the threshold, latency p50/p95, and
 cost per 1k decisions (from reported usage; Jev from its list price; Laya counts as 0, hardware not included).
 

@@ -25,6 +25,45 @@ class Row:
     questions: dict[str, dict[str, Any]]
     targets: dict[str, list[float]]
     group: str | None = None
+    split: str | None = None
+
+
+SPLITS = ("train", "calib", "test")
+ALIASES = {"dev": "calib", "val": "calib", "valid": "calib", "validation": "calib"}
+FORMULA = ("=", "+", "-", "@")
+
+
+def same_text(text: Any) -> str:
+    """The form two texts must share to count as the same: NFKC, case-folded, punctuation dropped, spaces collapsed."""
+    import unicodedata
+
+    folded = unicodedata.normalize("NFKC", str(text)).casefold()
+    kept = "".join(" " if unicodedata.category(ch).startswith("P") else ch for ch in folded)
+    return " ".join(kept.split())
+
+
+def text_hash(text: Any) -> str:
+    """A short, one-way fingerprint of a text (see `same_text`): provenance without storing the text."""
+    import hashlib
+
+    return hashlib.sha256(same_text(text).encode()).hexdigest()[:16]
+
+
+def _formula(value: str) -> bool:
+    return value.startswith(FORMULA) or (len(value) > 1 and value[0] == "'" and value[1] in FORMULA)
+
+
+def safe_cell(value: str) -> str:
+    """Quote a CSV cell a spreadsheet would run as a formula (`=`, `+`, `-`, `@` first), and one that already
+    starts with `'` plus one of those, so reading it back gives the original text."""
+    return "'" + value if _formula(value) else value
+
+
+def unsafe_cell(value: Any) -> Any:
+    """Undo `safe_cell` when reading a CSV back."""
+    if isinstance(value, str) and value[:1] == "'" and _formula(value[1:]):
+        return value[1:]
+    return value
 
 
 class DataError(ValueError):
@@ -113,9 +152,10 @@ def _records(data: Any) -> Iterable[tuple[str, dict[str, Any]]]:
         path = os.fspath(data)
         if not os.path.exists(path):
             raise DataError("no such file: %s" % path)
-        if path.endswith(".csv"):
+        if path.lower().endswith(".csv"):
             with open(path, newline="", encoding="utf-8-sig") as f:
                 for i, rec in enumerate(csv.DictReader(f), start=2):
+                    rec = {k: unsafe_cell(v) for k, v in rec.items()}
                     yield "%s line %d" % (os.path.basename(path), i), {"_csv": True, **rec}
             return
         with open(path, encoding="utf-8") as f:
@@ -130,13 +170,34 @@ def _records(data: Any) -> Iterable[tuple[str, dict[str, Any]]]:
         yield "row %d" % i, rec
 
 
-def load(data: Any, schema: type[BaseModel] | Schema | None = None, group_by: str | None = None) -> list[Row]:
-    """Read training data. CSV needs a `text` column and one column per schema field (blank = unlabelled)."""
+def _split_of(rec: dict[str, Any], where: str) -> str:
+    held = str(rec.get("split") or "").strip().lower()
+    held = ALIASES.get(held, held)
+    if held and held not in SPLITS:
+        raise DataError("%s: split must be one of %s (or blank), got %r" % (where, SPLITS, held))
+    return held
+
+
+def load(
+    data: Any, schema: type[BaseModel] | Schema | None = None, group_by: str | None = None, split: str = "train"
+) -> list[Row]:
+    """Read training data. CSV needs a `text` column and one column per schema field (blank = unlabelled).
+
+    A `split` column (a golden dataset: `train`, `calib` or `test`; `dev`/`val` mean `calib`) picks rows:
+    `split="train"` never returns `test` rows; `split="test"` returns only `test` rows, or every row when no row
+    has a split. A blank split counts as `train` whenever any row has one. `split="all"` returns everything.
+    """
+    if split not in ("train", "test", "all"):
+        raise ValueError("split must be 'train', 'test' or 'all', got %r" % split)
     compiled = compile_schema(schema) if isinstance(schema, type) else schema
-    rows: list[Row] = []
-    for n, (where, rec) in enumerate(_records(data)):
+    records = [(where, rec) for where, rec in _records(data)]
+    for where, rec in records:
         if not isinstance(rec, dict):
             raise DataError("%s: expected an object" % where)
+    marked = any(_split_of(rec, where) for where, rec in records)
+    everything: list[Row] = []
+    for n, (where, rec) in enumerate(records):
+        held = _split_of(rec, where) or ("train" if marked else "")
         rid = str(rec.get("id") or "row%d" % n)
         group = None if group_by is None else str(rec.get(group_by, "")) or None
         if "questions" in rec and "gold" in rec:
@@ -153,18 +214,49 @@ def load(data: Any, schema: type[BaseModel] | Schema | None = None, group_by: st
                     "answers": {k: v for k, v in rec.items() if k in compiled.fields and v not in (None, "")},
                 }
             row = _from_answers(compiled, rec, rid, where, group)
+        row.split = held or None
         if row.targets:
-            rows.append(row)
-    ids = [r.id for r in rows]
-    if len(set(ids)) != len(ids):
-        raise DataError("row ids must be unique")
-    return rows
+            everything.append(row)
+    return [r for r in _merge_repeats(everything) if _keep(r, split, marked)]
+
+
+def _keep(row: Row, split: str, marked: bool) -> bool:
+    if split == "train":
+        return row.split != "test"
+    if split == "test":
+        return not marked or row.split == "test"
+    return True
+
+
+def _merge_repeats(rows: list[Row]) -> list[Row]:
+    """The same row twice (joined golden runs) counts once, and as `test` if any copy is `test`."""
+    by_id: dict[str, Row] = {}
+    for r in rows:
+        first = by_id.get(r.id)
+        if first is None:
+            by_id[r.id] = r
+            continue
+        if first.text != r.text or first.targets != r.targets:
+            raise DataError(
+                "row id %r appears twice with different text or labels; give each row its own id, or fix one copy"
+                % r.id
+            )
+        if r.split == "test":
+            first.split = "test"
+    return list(by_id.values())
 
 
 def split(
     rows: Sequence[Row], seed: int = 0, test: float = 0.15, calib: float = 0.10, calib_max: int = 400
 ) -> tuple[list[Row], list[Row], list[Row]]:
-    """Seeded train / calib / test split; rows sharing a `group` stay on one side."""
+    """Seeded train / calib / test split; rows sharing a `group` stay on one side.
+
+    Rows marked `split=calib` (a golden dataset) are always the calibration split; the rest are split as usual.
+    """
+    marked = [r for r in rows if r.split == "calib"]
+    if marked:
+        tr, ca, te = split([r for r in rows if r.split != "calib"], seed, test, calib, calib_max)
+        return tr + ca, marked, te
     if len(rows) < MIN_ROWS:
         raise DataError("need at least %d labelled rows to fine-tune, have %d" % (MIN_ROWS, len(rows)))
     groups: dict[str, list[Row]] = {}
