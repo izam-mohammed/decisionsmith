@@ -58,7 +58,7 @@ class Model:
         self.device = device
         self.trained: str | None = None
         self.path: str | None = None
-        self.info: dict[str, Any] = {}
+        self.meta: dict[str, Any] = {}
         self.calibration: dict[str, dict[str, Any]] = {}
         self.report: Report | None = None
 
@@ -277,6 +277,7 @@ class Model:
         better = tuned >= base
         if better:
             self.engine = LayaEngine(out, device=self.device)
+            self.report, self.calibration = None, {}
             self.trained = out
         if verbose:
             rows_n, using = report.details["provenance"]["rows"]["train"], "now using %s" % out
@@ -305,19 +306,20 @@ class Model:
 
         return evaluate(self, data, target)
 
-    def save(self, path: str | None = None) -> str:
-        """Write a versioned model folder and return its path; versions are never overwritten.
+    def save(self, path: str | os.PathLike[str] | None = None, *, verbose: bool = True) -> str:
+        """Write a versioned model folder and return its path (the path is a name; use the returned path).
 
-            model.save()                  # models/<name>-v1, then -v2, ...
+            model.save()                  # models/<labels or class name>-v1, then -v2, ... (highest + 1)
             model.save("models/ticket")   # models/ticket-v1, then models/ticket-v2, ...
+            ds.load(path).save()          # a loaded model saves as the next version of its own name
 
-        The folder holds the Laya checkpoint (it loads in `laya.load`), `decisionsmith.json` (labels or schema,
-        calibration, thresholds, provenance), `report.json` (the latest `evaluate`) and `MODEL_CARD.md`.
-        Load it with `ds.load(path)`.
+        Versions are never overwritten. The folder holds the Laya checkpoint (it loads in `laya.load`),
+        `decisionsmith.json` (labels or schema, calibration, thresholds, provenance), `report.json` (the latest
+        `evaluate`, without texts or local paths) and `MODEL_CARD.md`. Load it with `ds.load(path)`.
         """
         from .artifact import save
 
-        return save(self, path)
+        return save(self, path, verbose=verbose)
 
 
 def write_rows(rows: list[dict[str, Any]], path: str, schema: Schema) -> str:
@@ -355,4 +357,8 @@ def model(spec: Any, engine: Any = "laya", *, question: str | None = None, devic
 
     `engine` is `"laya"` (default, trainable), a saved model folder, `"jev"`, or any LLM.
     """
+    if isinstance(engine, (str, os.PathLike)) and os.path.isfile(os.path.join(os.fspath(engine), "decisionsmith.json")):
+        from .artifact import load as _load
+
+        return _load(engine, spec, device=device)
     return Model(spec, engine, question=question, device=device)

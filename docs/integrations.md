@@ -36,6 +36,7 @@
 Framework LLM objects are recognised by the module of their class, so `teacher=ChatOpenAI(...)` just works; the
 framework is imported only when the wrapped teacher is first used.
 
+<!-- no-test: needs the litellm extra and a LiteLLM proxy config; examples/04-integrations/litellm runs it in CI -->
 ```python
 # guard.py next to the LiteLLM proxy config; config.yaml: guardrails: - guardrail_name: injection
 #   litellm_params: {guardrail: guard.Guard, mode: pre_call}
@@ -45,6 +46,7 @@ from decisionsmith.integrations.litellm import guardrail
 Guard = guardrail(ds.harness(Injection, teacher="claude-haiku-4-5", student="laya"), field="is_attack", block=[True])
 ```
 
+<!-- no-test: needs the openai extra; examples/04-integrations/openai runs it in CI -->
 ```python
 from openai import OpenAI
 from decisionsmith.integrations.openai import wrap
@@ -58,6 +60,7 @@ r.id == "decisionsmith"  # answered locally; otherwise the API answered as usual
 `ds.model(labels)`, a single field) and the value fits the format; anything else goes to the client unchanged.
 With `DS_OFFLINE=1` the wrapped client is never called: unsure answers are used as they are.
 
+<!-- no-test: needs the openai-agents extra; examples/04-integrations/openai-agents runs it in CI -->
 ```python
 from agents import Agent
 from decisionsmith.integrations.openai_agents import input_guardrail
@@ -66,6 +69,7 @@ guard = input_guardrail(ds.harness(Injection, teacher="claude-haiku-4-5", studen
 agent = Agent(name="support", instructions="...", input_guardrails=[guard])
 ```
 
+<!-- no-test: a fragment inside a LangChain app (prompt, llm and h come from it); examples/04-integrations/langchain runs it in CI -->
 ```python
 from decisionsmith.integrations.langchain import DecisionRunnable, as_tool, compressor, output_parser
 
@@ -139,6 +143,7 @@ Later engine work:
 | **Agno** | tool | shipped |
 | Mastra (TS), Vercel AI SDK (TS) | via the TS client (§ 9) | later |
 
+<!-- no-test: a fragment inside a LangGraph app (graph and ticket_harness come from it); examples/04-integrations/langgraph runs it in CI -->
 ```python
 from decisionsmith.integrations.langgraph import route_on
 

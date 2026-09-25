@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 from collections import Counter
 from typing import TYPE_CHECKING, Any
@@ -19,10 +20,17 @@ if TYPE_CHECKING:
 MIN_DECISIONS, MIN_PER_OPTION, MAX_ECE = 100, 10, 0.10
 
 
+def short_name(name: str) -> str:
+    """`laya:/home/me/models/ticket-v2` -> `laya:ticket-v2`, so reports don't carry local paths."""
+    kind, sep, rest = name.partition(":")
+    if sep and ("/" in rest or "\\" in rest):
+        return "%s:%s" % (kind, os.path.basename(os.path.normpath(rest)))
+    return name
+
+
 def training_hashes(model: Model) -> set[str]:
     """Fingerprints of the texts the model was trained on, from its checkpoint's provenance (empty if unknown)."""
     import json
-    import os
 
     folders = [model.trained, model.path, getattr(model.engine, "model_id", None)]
     for folder in [f for f in folders if isinstance(f, str)]:
@@ -64,12 +72,25 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
             continue
         conf = [max(p) for p in pred]
         right = [argmax(p) == argmax(g) for p, g in zip(pred, gold)]
-        thr = calibrate.threshold(conf, right, target)
-        sure = [k for c, k in zip(conf, right) if thr is not None and c >= thr]
+        pick = [int(data_mod.text_hash(r.text)[:8], 16) % 2 == 0 for _, r in pairs]
+        separate = any(pick) and not all(pick)
+        chosen_on = [(c, k) for c, k, x in zip(conf, right, pick) if x or not separate]
+        reported_on = [(c, k) for c, k, x in zip(conf, right, pick) if not x or not separate]
+        thr = calibrate.threshold([c for c, _ in chosen_on], [k for _, k in chosen_on], target)
+        sure = [k for c, k in reported_on if thr is not None and c >= thr]
         confusions = Counter(
             "%s -> %s" % (f.labels[argmax(g)], f.labels[argmax(p)]) for p, g, k in zip(pred, gold, right) if not k
         )
-        m.update({"threshold": thr, "coverage": len(sure) / len(pairs), "confusions": dict(confusions.most_common())})
+        m.update(
+            {
+                "threshold": thr,
+                "coverage": len(sure) / len(reported_on),
+                "accuracy_when_sure": sum(sure) / len(sure) if sure else None,
+                "threshold_rows": len(chosen_on),
+                "coverage_rows": len(reported_on),
+                "confusions": dict(confusions.most_common()),
+            }
+        )
         fields[name] = m
         c = model.calibration.setdefault(name, {})
         c["threshold"] = thr
@@ -93,6 +114,7 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
                 "ece": m["ece"],
                 "threshold": thr,
                 "coverage": m["coverage"],
+                "accuracy_when_sure": m["accuracy_when_sure"],
             }
         )
         counts = Counter(f.labels[argmax(g)] for g in gold)
@@ -127,7 +149,7 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
         "target": target,
         "rows": len(rows),
     }
-    title = "evaluate: %s on %d rows" % (model.name, len(rows))
+    title = "evaluate: %s on %d rows" % (short_name(model.name), len(rows))
     report = Report("evaluate", title, table, go=go, reasons=reasons or ["ready for the harness"], details=details)
     model.report = report
     return report

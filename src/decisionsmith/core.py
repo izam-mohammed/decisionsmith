@@ -29,6 +29,7 @@ T = TypeVar("T", bound=BaseModel)
 Mode = Literal["teacher", "shadow", "cascade", "student"]
 MODES = ("teacher", "shadow", "cascade", "student")
 MIN_FINETUNE_ROWS = 50
+DEFAULT_THRESHOLD = 0.8
 Job = tuple[Engine, str, list[str], Any]
 
 logger = logging.getLogger("decisionsmith")
@@ -66,7 +67,7 @@ class Harness(Generic[T]):
         teacher: Any = None,
         student: Any = None,
         mode: Mode | dict[str, Mode] | None = None,
-        threshold: float = 0.8,
+        threshold: float | None = None,
         log: str | os.PathLike[str] | None = "decisions.db",
         audit: float = 0.05,
         collect: float = 1.0,
@@ -86,6 +87,8 @@ class Harness(Generic[T]):
         self.student: Engine | None = from_string(student)
         if self.teacher is None and self.student is None:
             raise ValueError("give a teacher, a student, or both: ds.harness(Ticket, teacher='claude-sonnet-5')")
+        self._explicit_threshold = threshold is not None
+        threshold = DEFAULT_THRESHOLD if threshold is None else threshold
         if not 0.0 < threshold <= 1.0:
             raise ValueError("threshold must be in (0, 1], got %r" % threshold)
         if not 0.0 <= audit <= 1.0:
@@ -124,6 +127,8 @@ class Harness(Generic[T]):
 
     def _load_adapt(self) -> None:
         saved = self._model.calibration if self._model is not None else {}
+        if self._explicit_threshold:
+            saved = {n: {k: v for k, v in c.items() if k != "threshold"} for n, c in saved.items()}
         self._calib: dict[str, dict[str, Any]] = (self.log.get(self._adapt_key(), {}) if self.log else {}) or saved
 
     def _threshold(self, name: str) -> float:
@@ -446,7 +451,7 @@ def harness(
     teacher: Any = None,
     student: Any = None,
     mode: Mode | dict[str, Mode] | None = None,
-    threshold: float = 0.8,
+    threshold: float | None = None,
     log: str | os.PathLike[str] | None = "decisions.db",
     audit: float = 0.05,
     collect: float = 1.0,
@@ -458,6 +463,10 @@ def harness(
 
     model = ds.model(["billing", "technical", "sales"])   # base or trained Laya
     h = ds.harness(model, teacher="claude-haiku-4-5")       # it becomes the student; h(text) -> "billing"
+
+    `threshold` is how sure the student must be to answer in cascade. Per field, the first that exists wins: what
+    `h.adapt()` fitted on this log, then a `threshold=` you pass, then the thresholds a loaded model was saved
+    with (`model.evaluate`), then 0.8.
 
     `collect` is the share of texts kept in the log (1.0 keeps all). Below 1, a `collect` share (picked from the
     decision id) is kept plus every text the student was unsure of or answered differently from the teacher; the
