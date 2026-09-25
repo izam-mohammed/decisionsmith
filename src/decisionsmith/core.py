@@ -382,7 +382,6 @@ class Harness(Generic[T]):
         self._calib = calib
         if self._model is not None:
             self._model.calibration = {n: dict(c) for n, c in calib.items()}
-            self._model._kept_old = False
         reasons = [
             "thresholds target %.0f%% accuracy on held-out rows; no threshold means the field always "
             "asks the teacher" % (target * 100)

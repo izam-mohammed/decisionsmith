@@ -57,7 +57,7 @@ class Model:
         self.engine: Engine = _engine(engine, device)
         self.device = device
         self.trained: str | None = None
-        self._kept_old = self._train_ran = False
+        self._train_ran = False
         self.path: str | None = None
         self.meta: dict[str, Any] = {}
         self.calibration: dict[str, dict[str, Any]] = {}
@@ -277,7 +277,7 @@ class Model:
         tuned = report.details["finetuned"]["all"].get("accuracy") or 0.0
         n = report.details["finetuned"]["all"].get("n", 0)
         better = tuned >= base
-        report.switched, self._kept_old, self._train_ran = better, not better, True
+        report.switched, self._train_ran = better, True
         if better:
             self.engine = LayaEngine(out, device=self.device)
             self.report, self.calibration = None, {}
@@ -307,9 +307,7 @@ class Model:
         """
         from .evaluation import evaluate
 
-        report = evaluate(self, data, target)
-        self._kept_old = False
-        return report
+        return evaluate(self, data, target)
 
     def save(self, path: str | os.PathLike[str] | None = None, *, verbose: bool = True) -> str:
         """Write a versioned model folder and return its path (the path is a name; use the returned path).

@@ -25,9 +25,10 @@ if report.switched:  # False: the new weights scored worse on the test split, so
 (for a class). `path` is what `save` returns: the name you pass gets a version number.
 
 `model.train()` switches to the new weights unless they score worse on its held-out test split (a tie counts as
-switched), and `report.switched` says which happened. After a training run that kept the old model, `save` refuses
-since nothing changed. A loaded model can be saved again once `model.evaluate()` (or `h.adapt()` on a harness using
-it) gives it new calibration and thresholds.
+switched), and `report.switched` says which happened. After a training run that kept the old model, `save` still
+writes whatever the model had before: an earlier trained or loaded model, a local checkpoint, and any calibration and
+thresholds from `model.evaluate()` or `h.adapt()`. A model that started from the downloaded base and never switched
+has no local folder, so `save` says training kept the old model instead.
 
 ## Versions
 
@@ -98,7 +99,7 @@ if model.train("tickets.csv").switched:
 | message | fix |
 |---|---|
 | `nothing to save yet` | train first (`model.train(...)`), or save a model you loaded |
-| `nothing new to save: training ran but the new model scored worse on its test split` | `report.switched` was False; add more (and more varied) rows and train again |
+| `nothing to save: training ran but the new model scored worse on its test split` | `report.switched` was False and the model is still the downloaded base; add more (and more varied) rows and train again |
 | `... already exists and saved versions are never overwritten` | use a new version number, or `model.save()` for the next free one |
 | `... is a plain Laya checkpoint` | the folder came from `ds.finetune`; use `ds.model(labels_or_class, path)` |
 | `Ticket does not ask the same questions as the saved model (team.criteria: ...)` | the class differs from the saved one where the message says; load without it, or change it to match |

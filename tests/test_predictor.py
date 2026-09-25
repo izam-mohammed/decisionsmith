@@ -110,32 +110,54 @@ def test_train_keeps_old_model_when_worse(tiny, tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "kept the old model" in out and "rough" not in out and m.trained is None
     assert rep.switched is False and rep.to_dict()["switched"] is False
-    with pytest.raises(ValueError, match="training ran but the new model scored worse on its test split"):
-        m.save(str(tmp_path / "saved"))
+    assert m.save(str(tmp_path / "saved"), verbose=False) == str(tmp_path / "saved-v1")
     monkeypatch.setattr(fmod, "finetune", _fake_train(0.95))
     rep = m.train([("x", "sales")], out=str(tiny))
     assert rep.switched is True and m.trained == str(tiny)
-    assert m.save(str(tmp_path / "saved"), verbose=False) == str(tmp_path / "saved-v1")
+    monkeypatch.setattr(fmod, "finetune", _fake_train(0.5))
+    assert m.train([("x", "sales")], out=str(tmp_path / "o2"), verbose=False).switched is False
+    assert m.trained == str(tiny)
+    assert m.save(str(tmp_path / "saved"), verbose=False) == str(tmp_path / "saved-v2")
 
 
-def test_evaluate_after_a_kept_train_can_be_saved(tiny, tmp_path, monkeypatch):
+def _thresholds(path):
+    with open(os.path.join(path, "decisionsmith.json")) as f:
+        return json.load(f)["thresholds"]
+
+
+def test_a_kept_train_leaves_earlier_work_saveable(tiny, tmp_path, monkeypatch):
     import decisionsmith.training.finetuning as fmod
 
     monkeypatch.setattr(fmod, "finetune", _fake_train(0.5))
     test = [{"text": t, "label": team_of(t)} for t in corpus(40)]
-    m = ds.load(ds.model(LABELS, str(tiny)).save(str(tmp_path / "base"), verbose=False))
-    m.train([("x", "sales")], out=str(tmp_path / "o"), verbose=False)
-    with pytest.raises(ValueError, match="nothing new to save"):
-        m.save(verbose=False)
+    base = ds.model(LABELS, str(tiny)).save(str(tmp_path / "base"), verbose=False)
+    m = ds.load(base)
     m.evaluate(test)
-    assert m.save(verbose=False) == str(tmp_path / "base-v2")
+    m.train([("x", "sales")], out=str(tmp_path / "o"), verbose=False)
+    assert "label" in _thresholds(m.save(verbose=False))
+    m = ds.load(base)
+    m.train([("x", "sales")], out=str(tmp_path / "o"), verbose=False)
+    m.calibration = {"label": {"temperature": 1.3, "threshold": 0.8}}
+    assert _thresholds(m.save(verbose=False)) == {"label": 0.8}
+    m = ds.load(base)
+    m.train([("x", "sales")], out=str(tmp_path / "o"), verbose=False)
+    m.evaluate(test)
+    assert "label" in _thresholds(m.save(verbose=False))
+
+
+def test_save_after_a_kept_train_with_nothing_on_disk(tiny, tmp_path, monkeypatch):
+    import decisionsmith.training.finetuning as fmod
+
+    monkeypatch.setattr(fmod, "finetune", _fake_train(0.5))
     monkeypatch.setenv("DS_OFFLINE", "1")
     monkeypatch.setenv("DS_LAYA", str(tiny))
     fresh = ds.model(LABELS)
-    fresh.train([("x", "sales")], out=str(tmp_path / "o2"), verbose=False)
-    fresh.evaluate(test)
-    with pytest.raises(ValueError, match="nothing new to save: training ran"):
+    fresh.train([("x", "sales")], out=str(tmp_path / "o"), verbose=False)
+    fresh.evaluate([{"text": t, "label": team_of(t)} for t in corpus(40)])
+    with pytest.raises(ValueError, match="nothing to save: training ran but the new model scored worse"):
         fresh.save(str(tmp_path / "fresh"), verbose=False)
+    with pytest.raises(ValueError, match="nothing to save yet: train it first"):
+        ds.model(LABELS).save(str(tmp_path / "fresh"), verbose=False)
 
 
 def test_report_switched_only_after_training():
