@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (25/09/2026)
 
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,
   multilingual heads, typed-decisions reproduction and bench. The laptop ones keep outputs from real runs; CI runs
