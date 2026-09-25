@@ -442,9 +442,11 @@ def test_public_report_drops_paths_from_provenance_and_title(tmp_path):
     other = artifact._public({"title": "evaluate: laya:%s on 3 rows" % base, "details": {}})
     assert other["title"] == "evaluate: laya:tiny0 on 3 rows"
     assert artifact._public({"title": "bench on %s" % base})["title"] == "bench on tiny0"
-    for windows in ("C:\\Users\\me\\tiny0", "laya:C:\\Users\\me\\tiny0"):
-        assert artifact._public({"title": "evaluate: %s on 3 rows" % windows})["title"].endswith("tiny0 on 3 rows")
-        assert "Users" not in artifact._portable(windows)
+    for windows, want in (("C:\\Users\\me\\tiny0", "tiny0"), ("laya:C:\\Users\\me\\tiny0", "laya:tiny0")):
+        assert (
+            artifact._public({"title": "evaluate: %s on 3 rows" % windows})["title"] == "evaluate: %s on 3 rows" % want
+        )
+        assert artifact._portable(windows) == want
 
 
 def test_save_cleans_its_temp_folder_on_any_failure(tiny, tmp_path, monkeypatch):
