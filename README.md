@@ -94,6 +94,15 @@ head, fast even on a laptop; bigger data trains the whole model (use a GPU, or t
 `examples/`). You get `runs/v1/`: a plain Laya checkpoint (`laya.load("runs/v1")` works), a report comparing it
 with the base model on held-out data, and a go/no-go verdict with the reasons.
 
+Or from Python, and keep the result as a versioned folder you can load anywhere:
+
+```python
+model = ds.model(["billing", "technical", "sales"])
+model.train("tickets.csv")
+print(model.evaluate("test.csv"))  # held-out numbers and go/no-go
+m = ds.load(model.save("models/ticket"))  # models/ticket-v1
+```
+
 ## Compare engines on your data
 
 ```bash

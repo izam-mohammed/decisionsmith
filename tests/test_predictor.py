@@ -67,12 +67,14 @@ def test_train_predict_save_load(tiny, tmp_path, capsys, monkeypatch):
     if m.trained:
         run = os.path.join("runs", "label-v1")
         assert m.trained == run and m.name == "laya:%s" % run
-        m.save(str(tmp_path / "saved"))
-        assert (tmp_path / "saved" / "model.safetensors").exists()
-        assert not (tmp_path / "saved" / "checkpoint_latest").exists()
-        assert m.save(m.trained) == m.trained
-        again = ds.model(LABELS, str(tmp_path / "saved"))
+        saved = m.save(str(tmp_path / "saved"))
+        assert saved == str(tmp_path / "saved-v1")
+        assert (tmp_path / "saved-v1" / "model.safetensors").exists()
+        assert not (tmp_path / "saved-v1" / "checkpoint_latest").exists()
+        assert (tmp_path / "saved-v1" / "train_report.json").exists()
+        again = ds.model(LABELS, saved)
         assert again.predict("you charged me twice") in LABELS
+        assert ds.load(saved).predict("you charged me twice") in LABELS
     else:
         assert "kept the old model" in out
     assert m.predict("you charged me twice") in LABELS

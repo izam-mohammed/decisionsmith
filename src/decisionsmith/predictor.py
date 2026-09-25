@@ -6,7 +6,6 @@ import asyncio
 import csv
 import os
 import random
-import shutil
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Literal
@@ -58,6 +57,10 @@ class Model:
         self.engine: Engine = _engine(engine, device)
         self.device = device
         self.trained: str | None = None
+        self.path: str | None = None
+        self.info: dict[str, Any] = {}
+        self.calibration: dict[str, dict[str, Any]] = {}
+        self.report: Report | None = None
 
     @property
     def name(self) -> str:
@@ -286,13 +289,32 @@ class Model:
                 print("  note: only %d held-out decisions, so these numbers are rough; more data helps" % n)
         return report
 
-    def save(self, path: str) -> str:
-        """Copy the trained model to `path`. Load it later with `ds.model(labels_or_class, path)`."""
-        if self.trained is None:
-            raise ValueError("nothing to save yet: call .train() first")
-        if os.path.abspath(path) != os.path.abspath(self.trained):
-            shutil.copytree(self.trained, path, dirs_exist_ok=True, ignore=shutil.ignore_patterns("checkpoint_latest"))
-        return path
+    def evaluate(self, data: Any, *, target: float = 0.97) -> Report:
+        """Test on labelled data the model never trained on: accuracy, macro-F1, calibration, coverage, worst cases.
+
+            report = model.evaluate("test.csv")   # same formats as .train()
+            report.go                              # ready to answer behind the harness?
+
+        Also picks each field's confidence threshold (the lowest at which it reached `target` accuracy here);
+        `model.save()` stores it and the report, and the harness uses it for cascade.
+        """
+        from .evaluation import evaluate
+
+        return evaluate(self, data, target)
+
+    def save(self, path: str | None = None) -> str:
+        """Write a versioned model folder and return its path; versions are never overwritten.
+
+            model.save()                  # models/<name>-v1, then -v2, ...
+            model.save("models/ticket")   # models/ticket-v1, then models/ticket-v2, ...
+
+        The folder holds the Laya checkpoint (it loads in `laya.load`), `decisionsmith.json` (labels or schema,
+        calibration, thresholds, provenance), `report.json` (the latest `evaluate`) and `MODEL_CARD.md`.
+        Load it with `ds.load(path)`.
+        """
+        from .artifact import save
+
+        return save(self, path)
 
 
 def write_rows(rows: list[dict[str, Any]], path: str, schema: Schema) -> str:
@@ -308,6 +330,17 @@ def write_rows(rows: list[dict[str, Any]], path: str, schema: Schema) -> str:
                 {"text": r["text"], **{k: top(v) if isinstance(v, dict) else str(v) for k, v in r["answers"].items()}}
             )
     return path
+
+
+def load(path: str | os.PathLike[str], schema: Any = None, *, device: str | None = None) -> Model:
+    """Load a folder written by `model.save()`, ready to predict or to use in `ds.harness`.
+
+    m = ds.load("models/ticket-v2")           # labels, schema, calibration and thresholds come with it
+    m = ds.load("models/ticket-v2", Ticket)   # use your own class; it must match the saved schema
+    """
+    from .artifact import load as _load
+
+    return _load(path, schema, device=device)
 
 
 def model(spec: Any, engine: Any = "laya", *, question: str | None = None, device: str | None = None) -> Model:
