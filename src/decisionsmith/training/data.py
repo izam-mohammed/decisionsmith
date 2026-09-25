@@ -148,6 +148,11 @@ def _text(value: Any, where: str) -> str:
 
 
 def _records(data: Any) -> Iterable[tuple[str, dict[str, Any]]]:
+    if isinstance(data, str) and data.startswith("hf:"):
+        from ..integrations.datasets import records
+
+        yield from records(data[3:])
+        return
     if isinstance(data, (str, os.PathLike)):
         path = os.fspath(data)
         if not os.path.exists(path):
@@ -181,7 +186,8 @@ def _split_of(rec: dict[str, Any], where: str) -> str:
 def load(
     data: Any, schema: type[BaseModel] | Schema | None = None, group_by: str | None = None, split: str = "train"
 ) -> list[Row]:
-    """Read training data. CSV needs a `text` column and one column per schema field (blank = unlabelled).
+    """Read training data. CSV (and `hf:<dataset>`) needs a `text` column and one column per schema field (blank =
+    unlabelled).
 
     A `split` column (a golden dataset: `train`, `calib` or `test`; `dev`/`val` mean `calib`) picks rows:
     `split="train"` never returns `test` rows; `split="test"` returns only `test` rows, or every row when no row
@@ -207,7 +213,7 @@ def load(
                 raise DataError("%s: this format needs a schema, e.g. ds.finetune(data, Ticket)" % where)
             if rec.pop("_csv", False):
                 if "text" not in rec:
-                    raise DataError("%s: the CSV needs a 'text' column" % where)
+                    raise DataError("%s: the data needs a 'text' column" % where)
                 rec = {
                     "id": rec.get("id"),
                     "text": rec["text"],

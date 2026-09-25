@@ -1,0 +1,4 @@
+title: Hugging Face datasets
+summary: "`dataset.map(ds_map(x), batched=True)` adds decision columns; `model.train(\"hf:<dataset>\")` / `ds.finetune(\"hf:<dataset>:<split>\", ...)` train on a hub dataset or a local folder of data files."
+needs: [datasets, laya]
+imports: [datasets]
