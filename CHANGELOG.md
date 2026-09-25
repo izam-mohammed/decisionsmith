@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (25/09/2026)
 
 - **Saved model folders hold no local paths.** A base checkpoint that was a local folder is recorded by its folder
   name only (in `decisionsmith.json`, the copied `rl_agent_config.json`, `train_report.json` and the model card);
