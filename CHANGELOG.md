@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **`decisionsmith serve models/<name>-vN`** and **`decisionsmith.serve.app(path_or_harness)`** (new `[serve]` extra:
+  FastAPI + Uvicorn): `POST /v1/decide`, a Jev-compatible `POST /v1/systemone`, `POST /v1/label`, `GET /v1/status`,
+  `GET /health`, Prometheus `GET /metrics` and OpenAPI docs; optional bearer key from `DECISIONSMITH_API_KEY`, body
+  and text size limits, JSON errors with a fix. See docs/serve.md.
+
 ## 0.1.0 (25/09/2026)
 
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,
