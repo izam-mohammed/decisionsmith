@@ -1,40 +1,69 @@
+"""Every example runs offline: `DS_OFFLINE=1` answers LLM calls locally, `DS_LAYA` is the tiny checkpoint."""
+
 import os
 import runpy
 import sys
+from pathlib import Path
 
 import pytest
+import yaml
 
-EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples")
-
-
-@pytest.fixture
-def example_env(monkeypatch, tiny, tmp_path):
-    monkeypatch.syspath_prepend(EXAMPLES)
-    monkeypatch.setenv("DS_STUDENT", "laya:%s" % tiny)
-    monkeypatch.setenv("DS_BASE", str(tiny))
-    monkeypatch.setenv("DS_ENGINES", "fake,laya:%s" % tiny)
-    monkeypatch.setenv("DS_LOG", str(tmp_path / "e.db"))
-    monkeypatch.setenv("DS_OUT", str(tmp_path / "run"))
-    monkeypatch.delenv("DS_TEACHER", raising=False)
-    for mod in ("schema", "_common"):
-        sys.modules.pop(mod, None)
-
-
-@pytest.mark.parametrize("name", ["01_quickstart.py", "03_bench.py", "04_finetune.py"])
-def test_example_runs(example_env, name, capsys):
-    runpy.run_path(os.path.join(EXAMPLES, name), run_name="__main__")
-    out = capsys.readouterr().out
-    assert {"01_quickstart.py": "adapt: Ticket", "03_bench.py": "bench: Ticket", "04_finetune.py": "go:"}[name] in out
+ROOT = Path(__file__).resolve().parents[1]
+EXAMPLES = ROOT / "examples"
+KEYS = [
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GROQ_API_KEY",
+    "OPENROUTER_API_KEY",
+    "TOGETHER_API_KEY",
+    "FIREWORKS_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "XAI_API_KEY",
+    "MISTRAL_API_KEY",
+    "TYPESAFE_API_KEY",
+]
 
 
-def test_jev_example_needs_a_key(example_env, monkeypatch):
-    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
-    with pytest.raises(SystemExit, match="TYPESAFE_API_KEY"):
-        runpy.run_path(os.path.join(EXAMPLES, "02_jev_teacher_laya_student.py"), run_name="__main__")
+def scripts():
+    only = os.environ.get("DS_EXAMPLES")
+    for meta_path in sorted(EXAMPLES.rglob("meta.yaml")):
+        if only and not meta_path.parent.relative_to(EXAMPLES).as_posix().startswith(only):
+            continue
+        meta = yaml.safe_load(meta_path.read_text()) or {}
+        for py in sorted(meta_path.parent.glob("*.py")):
+            if not py.name.startswith("_") and py.name != "schema.py":
+                yield pytest.param(py, meta, id=str(py.relative_to(EXAMPLES)))
 
 
-def test_stand_in_teacher_uses_env(example_env, monkeypatch):
-    import _common
+@pytest.mark.parametrize("path,meta", list(scripts()))
+def test_example_runs(path, meta, tiny, tmp_path, monkeypatch, capsys):
+    if meta.get("offline") is False:
+        pytest.skip("needs %s" % meta.get("why", "resources this test can't provide"))
+    for module in meta.get("imports", []):
+        pytest.importorskip(module)
+    monkeypatch.setenv("DS_OFFLINE", "1")
+    monkeypatch.setenv("DS_LAYA", str(tiny))
+    for key in KEYS + list(meta.get("keys", [])):
+        monkeypatch.setenv(key, os.environ.get(key) or "offline")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.syspath_prepend(str(path.parent))
+    before = set(sys.modules)
+    try:
+        runpy.run_path(str(path), run_name="__main__")
+    finally:
+        for name in set(sys.modules) - before:
+            if str(path.parent) in str(getattr(sys.modules[name], "__file__", "") or ""):
+                del sys.modules[name]
+    if meta.get("expect"):
+        assert meta["expect"] in capsys.readouterr().out
 
-    monkeypatch.setenv("DS_TEACHER", "claude-haiku-4-5")
-    assert _common.teacher() == "claude-haiku-4-5"
+
+def test_every_example_has_meta_and_the_gallery_is_current():
+    for folder in {p.parent for p in EXAMPLES.rglob("*.py")} - {EXAMPLES}:
+        assert (folder / "meta.yaml").exists(), folder
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import gen_gallery
+
+    assert gen_gallery.main(["--check"]) == 0

@@ -4,13 +4,14 @@
 
 | string | engine | notes |
 |---|---|---|
-| `"claude-sonnet-5"`, `"gpt-5"`, `"ollama/qwen3"`, any LiteLLM id | LLM | one call answers every field; text is fenced as data; answers are one-hot |
+| `"claude-sonnet-5"`, `"gpt-5"`, `"gemini-2.5-flash"`, `"groq/<m>"`, `"ollama/qwen3"`, `ds.LLM(m, url=...)`, `"litellm/<id>"`, a LangChain / LlamaIndex / DSPy / ... LLM object | LLM | built-in client, no LLM library; one call answers every field; text is fenced as data; answers are one-hot ([teachers.md](teachers.md)) |
 | `"jev"`, `"jev:<model>"` | TypeSafe Jev | `TYPESAFE_API_KEY`; default model `jev-1.13.0` |
 | `"laya"`, `"laya:multilingual"`, `"laya:typed-decisions"`, `"laya:./runs/v1"`, `"laya:org/repo"` | Laya in-process | loaded once per process, batched in `h.many()` |
 | `"systemone:http://host:8000"` | any Jev-compatible server | `SYSTEMONE_API_KEY` as bearer token; retries 408/429/5xx |
 | `"fake"` | chance baseline | tests and demos |
 
-Custom engine: any object with `name: str` and `ask(text, questions) -> {"answers": {...}}` in the Jev format.
+Custom engine: any object with `name: str` and `ask(text, questions) -> {"answers": {...}}` in the Jev format
+(add `async aask(...)` to make `h.adecide()` native async; without it, it runs in a thread).
 `decisionsmith doctor --engines laya,claude-haiku-4-5` checks installs, keys and engines.
 
 ## Modes

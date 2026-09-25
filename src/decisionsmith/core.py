@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import random
 import time
 import uuid
-from concurrent.futures import Future, ThreadPoolExecutor
+from collections.abc import Generator
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Generic, Literal, TypeVar, cast
 
 from pydantic import BaseModel
@@ -25,6 +27,7 @@ T = TypeVar("T", bound=BaseModel)
 Mode = Literal["teacher", "shadow", "cascade", "student"]
 MODES = ("teacher", "shadow", "cascade", "student")
 MIN_FINETUNE_ROWS = 50
+Job = tuple[Engine, str, list[str], Any]
 
 logger = logging.getLogger("decisionsmith")
 
@@ -159,6 +162,46 @@ class Harness(Generic[T]):
         return [self._plain(r.value) for r in results]
 
     def _decide(self, text: str, pre: Any, batched: bool = False) -> Result[T]:
+        flow = self._flow(text, pre if batched else None)
+        jobs = next(flow)
+        while True:
+            pending = [self._executor().submit(self._ask, *job) for job in jobs[1:]] if not batched else []
+            answers = [self._ask(*jobs[0]), *(p.result() for p in pending)]
+            answers += [self._ask(*job) for job in jobs[1:]] if batched else []
+            try:
+                jobs = flow.send(answers)
+            except StopIteration as done:
+                return cast("Result[T]", done.value)
+
+    async def adecide(self, text: str) -> Result[T]:
+        """`decide` for async code: HTTP engines (LLMs, Jev, systemone) run natively async, others in a thread."""
+        flow = self._flow(text, None)
+        jobs = next(flow)
+        while True:
+            answers = await asyncio.gather(*(self._aask(*job) for job in jobs))
+            try:
+                jobs = flow.send(list(answers))
+            except StopIteration as done:
+                return cast("Result[T]", done.value)
+
+    async def _aask(self, engine: Engine, text: str, names: list[str], raw: Any = None) -> _Answers:
+        aask = getattr(engine, "aask", None)
+        if raw is not None or not callable(aask):
+            return await asyncio.to_thread(self._ask, engine, text, names, raw)
+        try:
+            reply = await aask(text, self.schema.questions(names))
+        except Exception as e:
+            reply = e
+        if reply is None:
+            reply = EngineError(engine.name, "aask returned None")
+        return self._ask(engine, text, names, reply)
+
+    async def acall(self, text: str) -> Any:
+        """`h(text)` for async code."""
+        return self._plain((await self.adecide(text)).value)
+
+    def _flow(self, text: str, pre: Any) -> Generator[list[Job], list[_Answers], Result[T]]:
+        """The routing: yields the engine calls to make (run in parallel), receives their answers."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("text must be a non-empty string")
         t0 = time.perf_counter()
@@ -166,20 +209,16 @@ class Harness(Generic[T]):
         student_fields = [n for n, m in modes.items() if m != "teacher"]
         first_teacher = [n for n, m in modes.items() if m in ("teacher", "shadow")]
 
-        s = _Answers()
-        t = _Answers()
-        pending: Future[_Answers] | None = None
-        if first_teacher and student_fields and not batched:
-            assert self.teacher is not None
-            pending = self._executor().submit(self._ask, self.teacher, text, first_teacher)
-        elif first_teacher:
-            assert self.teacher is not None
-            t = self._ask(self.teacher, text, first_teacher)
+        jobs: list[Job] = []
         if student_fields:
             assert self.student is not None
-            s = self._ask(self.student, text, student_fields, pre if batched else None)
-        if pending is not None:
-            t = pending.result()
+            jobs.append((self.student, text, student_fields, pre))
+        if first_teacher:
+            assert self.teacher is not None
+            jobs.append((self.teacher, text, first_teacher, None))
+        got = (yield jobs) if jobs else []
+        s = got[0] if student_fields else _Answers()
+        t = got[-1] if first_teacher else _Answers()
 
         adapted = {n: self._calibrated(n, d) for n, d in s.dists.items()}
         sure = {n: confidence(d) >= self._threshold(n) for n, d in adapted.items()}
@@ -190,7 +229,7 @@ class Harness(Generic[T]):
             more += confident
         more = [n for n in more if n not in t.dists]
         if more and self.teacher is not None:
-            extra = self._ask(self.teacher, text, more)
+            (extra,) = yield [(self.teacher, text, more, None)]
             t.dists.update(extra.dists)
             t.error = t.error or extra.error
 

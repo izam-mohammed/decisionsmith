@@ -6,6 +6,7 @@ import os
 import threading
 from typing import Any
 
+from .. import offline
 from .base import EngineError, need
 
 LAYA_REPO = "convaiinnovations/laya"
@@ -22,7 +23,8 @@ _AGENTS_LOCK = threading.Lock()
 def resolve_laya(spec: str) -> tuple[str, str | None]:
     """`laya` / `english` / `multilingual` / `typed-decisions` / a local dir / an HF repo id."""
     if spec in _ALIASES:
-        return LAYA_REPO, _ALIASES[spec]
+        stand_in = offline.laya(spec)
+        return (stand_in, None) if stand_in else (LAYA_REPO, _ALIASES[spec])
     if os.path.isdir(spec):
         return os.path.abspath(spec), None
     if spec.count("/") == 1 and not spec.startswith((".", "/", "~")):

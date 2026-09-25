@@ -1,9 +1,9 @@
 ---
 name: decisionsmith-setup
-description: "Connect and check decisionsmith engines: Jev (TYPESAFE_API_KEY), Laya (local), any LLM via LiteLLM, or a systemone URL. Use when setting up keys, installing extras or when an engine fails."
+description: "Connect and check decisionsmith engines: Jev (TYPESAFE_API_KEY), Laya (local), any LLM (built-in client, LiteLLM or a framework LLM object), or a systemone URL. Use when setting up keys, installing extras or when an engine fails."
 ---
 # Set up engines
-1. Install: `uv add "decisionsmith[all]"` (or `[laya]`, `[llm]`, `[mcp]`).
+1. Install: `uv add "decisionsmith[all]"` (or `[laya]`, `[anthropic]`, `[mcp]`, `[litellm]`, `[langchain]`, ...).
 2. Keys come from the environment only: `TYPESAFE_API_KEY` (Jev), provider keys such as `ANTHROPIC_API_KEY` (LLMs),
    `SYSTEMONE_API_KEY` (bearer token for a systemone server). Never write keys into code or tool arguments.
 3. Check: `decisionsmith doctor --engines laya,claude-haiku-4-5 --json` (one tiny request per engine; say it may cost

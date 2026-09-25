@@ -1,54 +1,72 @@
 # Integrations
 
-> **TL;DR**: decisionsmith plugs in two ways. As **engines** (what answers: any LLM, Jev, Laya, any systemone URL),
-> which ship in v0.1. And as a **harness inside your framework** (LiteLLM, LangChain, LangGraph, Pydantic AI,
-> OpenAI Agents, FastAPI, pandas, OpenTelemetry and ~30 more), planned for v0.2. Every framework integration is a
-> thin adapter (≤ ~100 lines) over the public API, behind a pip extra, with its own example and a test against a
-> pinned framework version. Snippets below are target designs: verify against the pinned version when building.
+> **TL;DR**: decisionsmith plugs in two ways. **Engines** answer (any LLM, Jev, Laya, any systemone URL). And
+> **integrations** put a model or harness inside your framework, or use your framework's LLM as the teacher. Every
+> integration is one module, `decisionsmith.integrations.<name>` (about 100 lines or less), behind its own extra,
+> tested offline against the pinned framework version in its own CI job. `import decisionsmith` imports none of them.
 
-Priority: **v0.1** ships now · **v0.2** first month after launch · **later** on demand or by the community.
+## Shipped
 
-## 1. Engines (what can answer): v0.1
+| extra | module | what you get | tested against |
+|---|---|---|---|
+| none | core | built-in LLM client: OpenAI, Gemini, Groq, OpenRouter, Together, Fireworks, DeepSeek, xAI, Mistral, Ollama, any OpenAI-compatible `url` ([teachers.md](teachers.md)) | respx-mocked HTTP |
+| `anthropic` | core | Claude teachers through the official SDK (`messages.parse`) | anthropic 1.8.0, mocked transport |
+| `litellm` | `integrations.litellm` | `teacher="litellm/<id>"` (any LiteLLM model, with cost), `guardrail(x, field, block)` Proxy `CustomGuardrail` (pre and post call), `tier(x, field, models)` model picker for a `Router` | litellm 1.102.1 |
+| `langchain` | `integrations.langchain` | any LangChain chat model as the teacher | langchain-core 1.6.5, langchain-openai 1.6.6 |
+| `llamaindex` | `integrations.llamaindex` | any LlamaIndex LLM as the teacher | llama-index-core 0.14.25, llama-index-llms-openai 0.8.2 |
+| `dspy` | `integrations.dspy` | a `dspy.LM` as the teacher | dspy 3.4.0 |
+| `crewai` | `integrations.crewai` | a CrewAI `LLM` as the teacher | crewai 1.15.22 (Python < 3.14) |
+| `pydantic-ai` | `integrations.pydantic_ai` | any Pydantic AI model as the teacher | pydantic-ai-slim 2.50.0 |
+| `haystack` | `integrations.haystack` | any Haystack chat generator as the teacher | haystack-ai 3.2.0 |
+| `smolagents` | `integrations.smolagents` | any smolagents model as the teacher | smolagents 1.26.0 |
+| `autogen` | `integrations.autogen` | any AutoGen 0.4+ model client as the teacher (AG2's `autogen` package is not supported) | autogen-agentchat / autogen-ext 0.7.5 |
+| `semantic-kernel` | `integrations.semantic_kernel` | any Semantic Kernel chat completion service as the teacher | semantic-kernel 1.44.1 |
+
+Framework LLM objects are recognised by the module of their class, so `teacher=ChatOpenAI(...)` just works; the
+framework is imported only when the wrapped teacher is first used.
+
+```python
+# guard.py next to the LiteLLM proxy config; config.yaml: guardrails: - guardrail_name: injection
+#   litellm_params: {guardrail: guard.Guard, mode: pre_call}
+import decisionsmith as ds
+from decisionsmith.integrations.litellm import guardrail
+
+Guard = guardrail(ds.harness(Injection, teacher="claude-haiku-4-5", student="laya"), field="is_attack", block=[True])
+```
+
+The sections below are the full plan; each row moves to **Shipped** when it is built and tested.
+
+## 1. Engines (what can answer)
 
 | engine | string | extra | notes |
 |---|---|---|---|
-| Any LLM via LiteLLM (Anthropic, OpenAI, Google, Bedrock, Azure, Vertex, Mistral, Groq, OpenRouter, Together, Fireworks…) | `"claude-sonnet-5"`, `"gpt-5"`, `"openrouter/…"` | `[llm]` | one call answers every field; one-hot answers |
-| Local LLMs (Ollama, LM Studio, vLLM, llama.cpp server, SGLang) | `"ollama/qwen3"`, `"openai/<model>"` + `api_base` | `[llm]` | fully offline teacher |
+| Any LLM, built-in client | `"claude-sonnet-5"`, `"gpt-5"`, `"gemini-2.5-flash"`, `"groq/…"`, `"openrouter/…"`, `"ollama/qwen3"`, `ds.LLM(m, url=...)` | none (`anthropic` for Claude) | one call answers every field; one-hot answers |
+| Any LiteLLM model | `"litellm/bedrock/…"`, `"litellm/vertex_ai/…"`, ... | `litellm` | cost per call from LiteLLM |
 | **Jev (TypeSafe)** | `"jev"`, `"jev:<model>"` | none | hosted, `TYPESAFE_API_KEY`; teacher or zero-shot student; can't be fine-tuned, can be `adapt()`ed |
-| **Laya in-process** | `"laya"`, `"laya:multilingual"`, `"laya:typed-decisions"`, `"laya:./runs/v1"`, `"laya:<org>/<repo>"` | `[laya]` | local student; fine-tune with `ds.finetune` / `h.finetune()` |
+| **Laya in-process** | `"laya"`, `"laya:multilingual"`, `"laya:typed-decisions"`, `"laya:./runs/v1"`, `"laya:<org>/<repo>"` | `laya` | local student; fine-tune with `ds.finetune` / `h.finetune()` |
 | **Any `/v1/systemone` endpoint** (laya-serve, laya.cpp server, other Jev-compatible servers) | `"systemone:http://host:8000"` | none | bearer token from `SYSTEMONE_API_KEY` |
-| Custom engine | any object with `name` and `ask(text, questions)` | none | returns Jev-format answers |
+| Custom engine | any object with `name` and `ask(text, questions)` (optionally `aask`) | none | returns Jev-format answers |
 | Fake | `"fake"`, `ds.testing.FakeEngine(...)` | none | tests, docs, demos |
 
-v0.2 engine work:
+Later engine work:
 | item | why |
 |---|---|
 | Honest LLM probabilities: log-probs over options (OpenAI-compatible, vLLM, llama.cpp, Ollama) → self-consistency → one-hot, weighted by method | better soft labels for `finetune` and a real teacher confidence |
 | Per-field LLM calls when a schema has many fields (`split="field"`) | long schemas, weaker models |
-| Async engines (`ask_async`) + `h.adecide()` | FastAPI, agents, guardrails need async |
 | laya.cpp, laya-mlx, ONNX as named engines | **only after the local spike + parity gates** in `reference/earlier-specs/14-integration-admission.md`; until then use `systemone:<url>` |
 
 ## 2. LLM gateways, proxies and clients: v0.2
 
 | integration | how decisionsmith fits | pri |
 |---|---|---|
-| **LiteLLM Proxy** guardrail | `pre_call` / `post_call` guardrail class: the harness decides allow / block / flag | v0.2 |
-| **LiteLLM Router** | harness picks the model tier (cheap vs strong) per request | v0.2 |
+| **LiteLLM Proxy** guardrail | `pre_call` / `post_call` guardrail class: the harness decides allow / block | shipped |
+| **LiteLLM Router** | harness picks the model tier (cheap vs strong) per request | shipped |
 | **OpenAI-compatible clients** (OpenAI SDK, any `base_url` client) | wrap a client so a `response_format` with enum/boolean fields is answered by the harness | v0.2 |
 | **Instructor** hook | same Pydantic model; answer from the harness first, fall back to the LLM call when unsure | v0.2 |
 | **Portkey** | guardrail plugin | v0.2 |
 | **Cloudflare AI Gateway / Kong AI Gateway** | routing / guardrail webhook recipe | v0.2 |
-| **OpenRouter** | as a teacher engine (already works via LiteLLM) + routing recipe | v0.2 |
+| **OpenRouter** | as a teacher engine (built in: `"openrouter/<model>"`) + routing recipe | teacher shipped |
 | Vercel AI Gateway | recipe | later |
-
-```yaml
-# LiteLLM proxy config (v0.2 target)
-guardrails:
-  - guardrail_name: decisionsmith-injection
-    litellm_params:
-      guardrail: decisionsmith.integrations.litellm.HarnessGuard
-      mode: pre_call
-```
 
 ## 3. Agent frameworks: v0.2
 
@@ -83,7 +101,7 @@ guard = ds.harness(Injection, teacher="claude-haiku-4-5", student="laya", mode="
 
 @input_guardrail
 async def block_injection(ctx, agent, text):
-    r = await guard.adecide(text)  # v0.2: async API
+    r = await guard.adecide(text)
     return GuardrailFunctionOutput(output_info=r.value, tripwire_triggered=r.value.is_attack)
 ```
 

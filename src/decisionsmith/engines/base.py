@@ -53,6 +53,31 @@ def ask_many(engine: Engine, texts: Sequence[str], questions: dict[str, Any]) ->
     return [engine.ask(t, questions) for t in texts]
 
 
+FRAMEWORKS = {
+    "langchain": "langchain",
+    "llama_index": "llamaindex",
+    "dspy": "dspy",
+    "crewai": "crewai",
+    "pydantic_ai": "pydantic_ai",
+    "haystack": "haystack",
+    "haystack_integrations": "haystack",
+    "smolagents": "smolagents",
+    "autogen_core": "autogen",
+    "autogen_ext": "autogen",
+    "semantic_kernel": "semantic_kernel",
+}
+
+
+def framework(obj: Any) -> str | None:
+    """Which integration wraps this LLM object, from the modules of its classes (the framework is never imported)."""
+    for cls in type(obj).__mro__:
+        top = cls.__module__.split(".")[0]
+        for prefix, name in FRAMEWORKS.items():
+            if top == prefix or (prefix == "langchain" and top.startswith("langchain_")):
+                return name
+    return None
+
+
 @overload
 def from_string(spec: None) -> None: ...
 
@@ -66,9 +91,17 @@ def from_string(spec: Any) -> Engine | None:
     if spec is None:
         return None
     if not isinstance(spec, str):
-        if not callable(getattr(spec, "ask", None)) or not isinstance(getattr(spec, "name", None), str):
-            raise TypeError("an engine needs a `name` str and an `ask(text, questions)` method, got %r" % (spec,))
-        return spec
+        if callable(getattr(spec, "ask", None)) and isinstance(getattr(spec, "name", None), str):
+            return spec
+        integration = framework(spec)
+        if integration is None:
+            raise TypeError(
+                "a teacher or student is an engine string, an Engine (`name` + `ask(text, questions)`), or an LLM "
+                "object from a supported framework (LangChain, LlamaIndex, DSPy, ...); got %r" % (spec,)
+            )
+        import importlib
+
+        return importlib.import_module("decisionsmith.integrations." + integration).teacher(spec)
     s = spec.strip()
     head, _, rest = s.partition(":")
     if s == "fake":
@@ -91,6 +124,10 @@ def from_string(spec: Any) -> Engine | None:
         return LayaEngine(rest or "laya")
     if not s:
         raise ValueError("empty engine string")
+    if s.startswith("litellm/"):
+        from ..integrations.litellm import teacher
+
+        return teacher(s[len("litellm/") :])
     from .llm import LLMEngine
 
     return LLMEngine(s)

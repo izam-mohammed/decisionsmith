@@ -1,0 +1,4 @@
+title: Jev teacher, Laya student
+summary: TypeSafe's hosted Jev labels, Laya learns; status() compares them.
+needs: [laya]
+keys: [TYPESAFE_API_KEY]

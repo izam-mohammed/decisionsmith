@@ -1,0 +1,23 @@
+name: integrations
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One job per framework: each `int-<name>` dependency group pins the tested version, and frameworks never share
+# an environment. Runs the integration's tests and its examples offline (DS_OFFLINE=1, tiny Laya checkpoint).
+jobs:
+  integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [litellm, langchain, llamaindex, dspy, crewai, pydantic-ai, haystack, smolagents, autogen, semantic-kernel]
+    runs-on: ubuntu-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: scripts/integration.sh ${{ matrix.name }} .venv

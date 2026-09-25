@@ -1,0 +1,3 @@
+title: Local only (Ollama + Laya)
+summary: An Ollama teacher and a Laya student; nothing leaves your machine.
+needs: [laya]

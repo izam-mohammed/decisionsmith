@@ -229,8 +229,7 @@ def _doctor(args: argparse.Namespace) -> int:
         "decisionsmith": "",
         "laya": "laya",
         "torch": "laya",
-        "litellm": "llm",
-        "instructor": "llm",
+        "anthropic": "anthropic",
         "mcp": "mcp",
     }
     for pkg, extra in packages.items():

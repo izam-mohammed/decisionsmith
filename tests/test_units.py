@@ -184,7 +184,16 @@ def test_public_functions_survive_submodule_imports():
 LITE = r"""
 import builtins, csv, sys
 
-HEAVY = {"numpy", "torch", "laya", "transformers", "litellm", "instructor", "mcp", "httpx"}
+HEAVY = {
+    "numpy", "torch", "laya", "transformers", "litellm", "instructor", "mcp", "httpx", "httpx2", "anthropic",
+    "openai", "langchain", "langchain_core", "langgraph", "llama_index", "dspy", "crewai", "pydantic_ai", "haystack",
+    "smolagents", "autogen_core", "autogen_ext", "autogen_agentchat", "semantic_kernel", "agents", "claude_agent_sdk",
+    "google", "agno", "guardrails", "nemoguardrails", "outlines", "marvin", "llm", "chromadb", "qdrant_client",
+    "pandas", "polars", "datasets", "duckdb", "pyspark", "dask", "ray", "label_studio_sdk", "argilla", "cleanlab",
+    "huggingface_hub", "opentelemetry", "langfuse", "langsmith", "phoenix", "prometheus_client", "mlflow", "wandb",
+    "deepeval", "inspect_ai", "fastapi", "starlette", "django", "flask", "litestar", "celery", "rq", "dramatiq",
+    "gradio", "streamlit", "instructor", "portkey_ai",
+}
 real = builtins.__import__
 
 
@@ -228,6 +237,10 @@ with open(path, "w", newline="") as f:
     w.writerows([t, truth(t)["team"], truth(t)["urgent"]] for t in texts[:30])
 assert ds.bench(T, path, [FakeEngine(truth)]).rows[0]["accuracy"] == 1.0
 assert ds.model(["a", "b"], FakeEngine()).predict("x") in ("a", "b")
+import importlib, pkgutil
+import decisionsmith.integrations as integrations
+for info in pkgutil.iter_modules(integrations.__path__):
+    importlib.import_module("decisionsmith.integrations." + info.name)
 loaded = sorted(m for m in sys.modules if m.split(".")[0] in HEAVY)
 assert not loaded, loaded
 print("ok")

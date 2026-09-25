@@ -106,6 +106,8 @@ harness, bench, status, finetune and label as tools. There's also a Claude Code 
 [Quickstart](docs/quickstart.md) · [Fine-tuning](docs/finetune.md) · [Guide: engines, modes, status, adapt,
 bench](docs/guide.md) · [FAQ](docs/faq.md) · [Integrations](docs/integrations.md) · [Roadmap](docs/roadmap.md)
 
+Runnable [examples](examples/) (gallery, every one runs offline) and [notebooks](notebooks/).
+
 ---
 
 Built on [Laya](https://github.com/NandhaKishorM/laya) (Apache-2.0) by Nandakishor M / Convai Innovations.

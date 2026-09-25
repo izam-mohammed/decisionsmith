@@ -9,11 +9,15 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--min", type=float, default=95.0)
     p.add_argument("--file", default="coverage.json")
+    p.add_argument("--skip", action="append", default=[], help="skip paths containing this (repeatable)")
+    p.add_argument("--only", action="append", default=[], help="check only paths containing this (repeatable)")
     args = p.parse_args(argv)
     with open(args.file) as f:
         files = json.load(f)["files"]
     low = {}
     for path, data in sorted(files.items()):
+        if any(x in path for x in args.skip) or (args.only and not any(x in path for x in args.only)):
+            continue
         s = data["summary"]
         total = s["num_statements"] + s.get("num_branches", 0)
         covered = s["covered_lines"] + s.get("covered_branches", 0)

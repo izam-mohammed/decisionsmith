@@ -1,0 +1,3 @@
+title: Quickstart
+summary: Teacher plus Laya in shadow mode, then status() and adapt().
+needs: [laya, anthropic]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import os
 import random
@@ -77,12 +78,28 @@ class Model:
 
     def predict(self, text: str | list[str]) -> Any:
         """One text -> the label (or your class). A list of texts -> a list, batched."""
+        return self._values(text, self.ask_many(self._texts(text), self.schema.questions()))
+
+    async def apredict(self, text: str | list[str]) -> Any:
+        """`predict` for async code: HTTP engines run natively async, Laya runs batched in a thread."""
+        texts, questions = self._texts(text), self.schema.questions()
+        aask = getattr(self.engine, "aask", None)
+        if callable(aask):
+            raws = list(await asyncio.gather(*(aask(t, questions) for t in texts)))
+        else:
+            raws = await asyncio.to_thread(self.ask_many, texts, questions)
+        return self._values(text, raws)
+
+    def _texts(self, text: str | list[str]) -> list[str]:
         texts = [text] if isinstance(text, str) else list(text)
         if any(not isinstance(t, str) or not t.strip() for t in texts):
             raise ValueError("predict() takes a non-empty string or a list of them")
+        return texts
+
+    def _values(self, text: str | list[str], raws: list[Any]) -> Any:
         questions = self.schema.questions()
         out = []
-        for raw in self.ask_many(texts, questions):
+        for raw in raws:
             answers, _ = response(self, raw, questions)
             out.append(self.value(self.schema.build(self.schema.distributions(answers))))
         return out[0] if isinstance(text, str) else out

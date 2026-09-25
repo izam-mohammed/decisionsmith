@@ -1,3 +1,5 @@
+import asyncio
+import sys
 import types
 
 import httpx
@@ -14,10 +16,9 @@ from decisionsmith.engines import (
     SystemOneEngine,
     ask_many,
     from_string,
-    llm,
+    http,
     resolve_laya,
     response,
-    systemone,
 )
 from decisionsmith.schema import compile_schema
 from tests.conftest import Ticket
@@ -40,7 +41,7 @@ JEV_REPLY = {
 
 @pytest.fixture
 def no_sleep(monkeypatch):
-    monkeypatch.setattr(SystemOneEngine, "_sleep", lambda self, attempt: None)
+    monkeypatch.setattr(http.time, "sleep", lambda s: None)
 
 
 @respx.mock
@@ -88,11 +89,11 @@ def test_systemone_errors(resp, match):
         SystemOneEngine("http://h", retries=0).ask("t", Q)
 
 
-def test_real_sleep_is_short(monkeypatch):
-    slept = []
-    monkeypatch.setattr(systemone.time, "sleep", slept.append)
-    SystemOneEngine("http://h")._sleep(1)
-    assert slept == [1.0]
+def test_backoff_delay():
+    assert http.delay(1) == 1.0
+    assert http.delay(0, httpx.Response(429, headers={"retry-after": "3"})) == 3.0
+    assert http.delay(0, httpx.Response(429, headers={"retry-after": "999"})) == 20.0
+    assert http.delay(2, httpx.Response(429, headers={"retry-after": "soon"})) == 2.0
 
 
 @respx.mock
@@ -136,7 +137,7 @@ def test_from_string(monkeypatch, tiny):
     for bad in ("", "systemone:"):
         with pytest.raises(ValueError):
             from_string(bad)
-    with pytest.raises(TypeError, match="engine needs"):
+    with pytest.raises(TypeError, match="supported framework"):
         from_string(object())
 
 
@@ -182,79 +183,44 @@ def test_ask_many_falls_back_to_loop():
     assert len(ask_many(fake, ["a", "b"], Q)) == 2
 
 
-class _Completions:
-    def __init__(self, pick, fail=False):
-        self.pick, self.fail, self.kwargs = pick, fail, None
-
-    def create_with_completion(self, **kwargs):
-        self.kwargs = kwargs
-        if self.fail:
-            raise RuntimeError("rate limited")
-        model = kwargs["response_model"]
-        usage = types.SimpleNamespace(prompt_tokens=10, completion_tokens=2)
-        return model(**self.pick), types.SimpleNamespace(usage=usage)
-
-
-def _llm(monkeypatch, pick, fail=False):
-    comp = _Completions(pick, fail)
-    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=comp))
-    import instructor
-
-    monkeypatch.setattr(instructor, "from_litellm", lambda fn: client)
-    return LLMEngine("claude-sonnet-5", max_tokens=100), comp
-
-
-def test_llm_engine(monkeypatch):
-    e, comp = _llm(monkeypatch, {"q0": "sales", "q1": False, "q2": "high: very"})
-    questions = {**Q, "lvl": {"type": "score", "instructions": "How urgent?", "criteria": ["low", "high: very"]}}
-    out = e.ask("How much is the plan?", questions)
-    a = out["answers"]
-    assert a["team"]["choice"] == "sales" and a["team"]["probabilities"]["sales"] == 1.0
-    assert a["wants_refund"]["noul"] == 0.0
-    assert a["lvl"]["score"] == 1.0 and a["lvl"]["probabilities"] == {"0": 0.0, "1": 1.0}
-    assert out["usage"]["input_tokens"] == 10 and "cost_usd" in out["usage"]
-    assert comp.kwargs["temperature"] == 0 and comp.kwargs["max_tokens"] == 100
-    prompt = comp.kwargs["messages"][1]["content"]
-    assert "<text>\nHow much is the plan?\n</text>" in prompt and "- billing: payments and refunds" in prompt
-    assert "answer true or false" in prompt
-    compile_schema(Ticket)
-    e.ask("again", questions)
-    assert len(e._models) == 1
-    noul_desc = {"s": {"type": "noul", "instructions": "Spam?", "criteria": {"true": "junk"}}}
-    e2, comp2 = _llm(monkeypatch, {"q0": True})
-    assert e2.ask("x", noul_desc)["answers"]["s"]["noul"] == 1.0
-    assert "- true: junk" in comp2.kwargs["messages"][1]["content"]
-
-
-def test_llm_engine_errors(monkeypatch):
-    e, _ = _llm(monkeypatch, {}, fail=True)
-    with pytest.raises(EngineError, match="rate limited") as err:
-        e.ask("x", Q)
-    assert "API_KEY" in err.value.fix
-    import builtins
-
-    real = builtins.__import__
-
-    def no_instructor(name, *a, **k):
-        if name == "instructor":
-            raise ImportError
-        return real(name, *a, **k)
-
-    monkeypatch.setattr(builtins, "__import__", no_instructor)
-    with pytest.raises(EngineError, match="not installed"):
-        LLMEngine("gpt-5").ask("x", Q)
-
-
-def test_usage_without_cost(monkeypatch):
-    import litellm
-
-    monkeypatch.setattr(litellm, "completion_cost", lambda **k: 0.0012)
-    assert llm._usage(types.SimpleNamespace(usage=None))["cost_usd"] == pytest.approx(0.0012)
-    monkeypatch.setattr(litellm, "completion_cost", lambda **k: (_ for _ in ()).throw(ValueError()))
-    assert llm._usage(object())["cost_usd"] is None
-
-
 def test_engine_error_text():
     assert str(EngineError("jev", "down", "retry")) == "engine 'jev': down\n  fix: retry"
     assert str(EngineError("jev", "down")) == "engine 'jev': down"
     assert isinstance(ds.testing.FakeEngine(), ds.Engine)
+
+
+@respx.mock
+def test_systemone_async(monkeypatch):
+    async def no_sleep(s):
+        return None
+
+    monkeypatch.setattr(http.asyncio, "sleep", no_sleep)
+    e = SystemOneEngine("http://h")
+
+    async def go():
+        first = await e.aask("t", Q)
+        again = await e.aask("t", Q)
+        return first, again, e._clients.async_()
+
+    respx.post("http://h/v1/systemone").mock(
+        side_effect=[
+            httpx.Response(503),
+            httpx.ConnectTimeout("slow"),
+            httpx.Response(200, json=JEV_REPLY),
+            httpx.Response(200, json=JEV_REPLY),
+        ]
+    )
+    first, again, client = asyncio.run(go())
+    assert first["answers"]["team"]["choice"] == "billing" == again["answers"]["team"]["choice"]
+    respx.post("http://h/v1/systemone").mock(side_effect=httpx.ConnectError("refused"))
+    with pytest.raises(EngineError, match="no response after 3 attempts"):
+        asyncio.run(e.aask("t", Q))
+
+
+def test_framework_objects_route_to_their_integration(monkeypatch):
+    made = []
+    fake = types.ModuleType("decisionsmith.integrations.dspy")
+    fake.teacher = lambda obj: made.append(obj) or ds.testing.FakeEngine(name="wrapped")
+    monkeypatch.setitem(sys.modules, "decisionsmith.integrations.dspy", fake)
+    lm = type("LM", (), {"__module__": "dspy.clients.lm"})()
+    assert from_string(lm).name == "wrapped" and made == [lm]

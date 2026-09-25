@@ -6,7 +6,7 @@ import pytest
 
 import decisionsmith as ds
 from decisionsmith import cli
-from decisionsmith.engines import EngineError, LLMEngine, write
+from decisionsmith.engines import EngineError
 from decisionsmith.predictor import labels_model, write_rows
 from decisionsmith.testing import FakeEngine
 from tests.conftest import Ticket, corpus, truth
@@ -229,45 +229,6 @@ def test_harness_takes_a_model(db):
     assert h2.student.name == "fake" and not h2.simple
 
 
-def test_llm_object_with_url(monkeypatch):
-    e = ds.LLM("my-model", url="http://localhost:8000/v1", api_key="k", temperature=0.3)
-    assert e.model == "openai/my-model" and e.name == "openai/my-model@http://localhost:8000/v1"
-    assert e.kwargs == {"temperature": 0.3, "api_base": "http://localhost:8000/v1", "api_key": "k"}
-    assert ds.LLM("ollama/qwen3", url="http://x").model == "ollama/qwen3"
-    with pytest.raises(ValueError, match="model name"):
-        ds.LLM("")
-    calls = []
-
-    class Comp:
-        def create_with_completion(self, **kw):
-            calls.append(kw)
-            model = kw["response_model"]
-            if "texts" in model.model_fields:
-                return model(texts=["one", " ", "two"]), None
-            return model(q0="sales"), types.SimpleNamespace(usage=None)
-
-    client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=Comp()))
-    import instructor
-
-    monkeypatch.setattr(instructor, "from_litellm", lambda fn: client)
-    q = {"label": {"type": "choice", "instructions": "?", "criteria": LABELS}}
-    assert e.ask("x", q)["answers"]["label"]["choice"] == "sales"
-    assert calls[-1]["temperature"] == 0.3 and calls[-1]["api_base"] == "http://localhost:8000/v1"
-    assert write(e, "write 2", 2) == ["one", "two"] and calls[-1]["temperature"] == 0.3
-    assert write(LLMEngine("gpt-5"), "w", 2) == ["one", "two"] and calls[-1]["temperature"] == 1.0
-
-    class Fails:
-        def create_with_completion(self, **kw):
-            raise RuntimeError("quota")
-
-    e2 = LLMEngine("gpt-5")
-    e2._client_obj = types.SimpleNamespace(chat=types.SimpleNamespace(completions=Fails()))
-    with pytest.raises(EngineError, match="quota"):
-        write(e2, "w", 1)
-    with pytest.raises(EngineError, match="can't write"):
-        write(FakeEngine(), "w", 1)
-
-
 def run(capsys, *argv):
     code = cli.main(list(argv))
     return code, capsys.readouterr().out
@@ -356,7 +317,7 @@ def test_cli_train_with_teacher_texts(capsys, tmp_path, monkeypatch):
         "2",
     )
     assert code == cli.OK and got["data"] == ["one", "two"] and got["epochs"] == 2
-    assert got["teacher"].kwargs["api_base"] == "http://h/v1"
+    assert got["teacher"].url == "http://h/v1"
     code, _ = run(capsys, "train", "--labels", "a,b", "--generate", "5", "--teacher", "claude-haiku-4-5")
     assert got["data"] is None and got["generate"] == 5 and got["teacher"] == "claude-haiku-4-5"
 
