@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (25/09/2026)
+## Unreleased
 
 - **A coding agent can build the model, no LLM API key.** `ds.golden(..., teacher="agent")` and
   `decisionsmith golden --teacher agent` write a labelling session (`golden.session.json`) instead of calling an LLM;
@@ -12,6 +12,9 @@
   `labels` or a session file. `model.evaluate` reports accuracy per `labelled_by`. Claude Code plugin:
   `/decisionsmith:build`, the `decisionsmith-build` skill and `labeler`, `data-writer`, `evaluator` subagents;
   AGENTS.md has the same playbook for Codex, Gemini CLI and Cursor.
+
+## 0.1.0 (25/09/2026)
+
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,
   multilingual heads, typed-decisions reproduction and bench. The laptop ones keep outputs from real runs; CI runs
   every notebook offline. The Kaggle/Colab notebook moved from `examples/finetune_kaggle_colab.ipynb` to
