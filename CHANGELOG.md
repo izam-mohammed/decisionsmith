@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Saved models are versioned folders.** `model.save()` writes `models/<name>-vN` (never overwrites a version)
+  with the Laya checkpoint, `decisionsmith.json` (labels or schema, calibration, thresholds, provenance),
+  `report.json` and `MODEL_CARD.md`. **Breaking:** `model.save("x")` now writes `x-v1`, then `x-v2`.
+- **`ds.load(path)`** returns a ready model with its labels or schema, calibration and thresholds; pass your own
+  class to get it back (it must match). A harness built from a loaded model uses its thresholds.
+- **`model.evaluate(data)`**: per field accuracy, macro-F1, ECE, threshold, coverage, confusions, worst cases and
+  latency, with go/no-go reasons.
 - **LLM teachers need no LLM library.** A built-in OpenAI-compatible client on httpx (OpenAI, Gemini, Groq,
   OpenRouter, Together, Fireworks, DeepSeek, xAI, Mistral, Ollama, any `ds.LLM(model, url=...)`), and Claude through
   the official `anthropic` SDK (`decisionsmith[anthropic]`). Core dependencies stay `pydantic` + `httpx`.

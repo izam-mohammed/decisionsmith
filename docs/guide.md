@@ -24,7 +24,8 @@ Custom engine: any object with `name: str` and `ask(text, questions) -> {"answer
 | `student` | student | teacher only if the student fails |
 
 `mode="shadow"` for all fields or `mode={"team": "cascade"}` per field. Fields you don't name get the default
-(`cascade` with two engines). `threshold=0.8` is the default; `adapt()` replaces it per field.
+(`cascade` with two engines). `threshold=0.8` is the default; a model from `ds.load` brings the per-field
+thresholds `model.evaluate()` picked, and `adapt()` replaces them from the log.
 `h.decide(text)` returns a `ds.Result`: `.value`, `.source`, `.confidence`, `.probabilities`, `.sure`, `.id`.
 
 ## Status
