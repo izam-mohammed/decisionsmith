@@ -62,6 +62,9 @@ Pass the object; decisionsmith recognises it from its class and wraps it (the fr
 | smolagents | `OpenAIServerModel`, `LiteLLMModel`, `TransformersModel`, `InferenceClientModel`, ... | `smolagents` |
 | AutoGen (0.4+) | model clients: `OpenAIChatCompletionClient`, ... | `autogen` |
 | Semantic Kernel | chat completion services: `OpenAIChatCompletion`, ... | `semantic-kernel` |
+| Outlines | any Outlines model: `outlines.from_transformers(...)`, `from_ollama`, `from_vllm`, `from_openai`, ... (the answer schema is enforced) | `outlines` |
+| simonw/llm | any `llm` model: `llm.get_model("gpt-5-mini")`, plugin models, async models | `llm-plugin` |
+| OpenAI SDK | a client plus a model id: `integrations.openai.teacher(OpenAI(base_url=...), "model")` | `openai` |
 
 ```python
 from langchain_anthropic import ChatAnthropic

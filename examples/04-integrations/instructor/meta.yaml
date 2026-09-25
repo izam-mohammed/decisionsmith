@@ -1,0 +1,4 @@
+title: Instructor
+summary: Instructor's create(response_model=...) answered by your model first, with the LLM call as the fallback.
+needs: [instructor, laya]
+imports: [instructor]

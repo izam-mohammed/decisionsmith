@@ -1,7 +1,8 @@
 """Every notebook runs top to bottom offline (`DS_OFFLINE=1`, tiny Laya checkpoint), so none of them rot.
 
 Code cells run in one namespace; `%%writefile` cells write their file; other `!`/`%` lines are skipped.
-Notebooks whose metadata has `"decisionsmith": {"offline": false}` (GPU ones) are skipped.
+Notebooks whose metadata has `"decisionsmith": {"offline": false}` (GPU ones) are skipped, and so are notebooks whose
+`"imports"` (e.g. a framework) are not installed in this environment.
 """
 
 import json
@@ -32,10 +33,13 @@ def run_cell(source, namespace):
 
 
 @pytest.mark.parametrize("path", sorted(NOTEBOOKS.glob("*.ipynb")), ids=lambda p: p.name)
-def test_notebook_runs_offline(path, tiny, tmp_path, monkeypatch):
+def test_notebook_runs_offline(path, tiny, tmp_path, monkeypatch, no_network):
     meta, code = cells(path)
     if meta.get("offline") is False:
         pytest.skip(meta.get("why", "needs a GPU"))
+    for module in meta.get("imports", []):
+        pytest.importorskip(module)
+    monkeypatch.setenv("MPLBACKEND", "Agg")
     monkeypatch.setenv("DS_OFFLINE", "1")
     monkeypatch.setenv("DS_LAYA", str(tiny))
     for key in KEYS:

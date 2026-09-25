@@ -1,0 +1,5 @@
+title: Outlines
+summary: Any Outlines model (Ollama, vLLM, OpenAI, transformers, llama.cpp, ...) as the teacher, with structured generation.
+needs: [outlines, laya]
+imports: [outlines, ollama, openai]
+pip: [ollama]

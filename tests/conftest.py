@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import socket
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -151,6 +152,20 @@ def make_checkpoint(path: Path, words: list[str] | None = None, head_layers: int
     }
     (path / "rl_agent_config.json").write_text(json.dumps(cfg))
     return path
+
+
+@pytest.fixture
+def no_network(monkeypatch):
+    """Every connection outside this machine fails: examples, notebooks and integration tests run offline."""
+    real = socket.socket.connect
+
+    def connect(self, address):
+        host = address[0] if isinstance(address, tuple) else address
+        if host not in ("127.0.0.1", "::1", "localhost") and not str(host).startswith("/"):
+            raise OSError("network is blocked in this test (tried %r)" % (address,))
+        return real(self, address)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
 
 
 @pytest.fixture(scope="session")

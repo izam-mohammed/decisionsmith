@@ -65,6 +65,8 @@ FRAMEWORKS = {
     "autogen_core": "autogen",
     "autogen_ext": "autogen",
     "semantic_kernel": "semantic_kernel",
+    "outlines": "outlines",
+    "llm": "llm_plugin",
 }
 
 

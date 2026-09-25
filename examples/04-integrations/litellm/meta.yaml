@@ -1,0 +1,4 @@
+title: LiteLLM
+summary: Any LiteLLM model as the teacher (Bedrock, Vertex, Azure, Cohere, ...), a Proxy guardrail and Router tiers.
+needs: [litellm, laya]
+imports: [litellm]

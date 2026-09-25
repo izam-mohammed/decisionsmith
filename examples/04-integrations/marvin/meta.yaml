@@ -1,0 +1,3 @@
+title: Marvin classify drop-in
+summary: A classify(data, labels) with Marvin's signature, answered by a ds.model (base Laya or your trained one).
+needs: [laya]

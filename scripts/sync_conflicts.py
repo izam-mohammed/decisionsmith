@@ -10,7 +10,7 @@ from pathlib import Path
 
 CORE_EXTRAS = {"laya", "anthropic", "mcp", "all"}
 # frameworks that pin an older mcp than the `mcp` extra needs (mcp >= 2.2)
-OLD_MCP = ["crewai", "semantic-kernel"]
+OLD_MCP = ["crewai", "marvin", "semantic-kernel"]
 PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
 
 
@@ -26,7 +26,8 @@ def main() -> int:
     for name in OLD_MCP:
         for core in ("mcp", "all"):
             block += '  [{ group = "int-%s" }, { extra = "%s" }],\n' % (name, core)
-            block += '  [{ extra = "%s" }, { extra = "%s" }],\n' % (name, core)
+            if name in extras:
+                block += '  [{ extra = "%s" }, { extra = "%s" }],\n' % (name, core)
     block += "]"
     new = re.sub(r"conflicts = \[\n.*?\n\]", block, s, flags=re.S)
     if "--check" in sys.argv:

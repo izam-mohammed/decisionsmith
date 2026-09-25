@@ -1,0 +1,4 @@
+title: simonw/llm plugin
+summary: An `llm decide` command for the llm CLI, and any llm model as the teacher.
+needs: [llm-plugin, laya]
+imports: [llm]

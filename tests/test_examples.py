@@ -38,7 +38,7 @@ def scripts():
 
 
 @pytest.mark.parametrize("path,meta", list(scripts()))
-def test_example_runs(path, meta, tiny, tmp_path, monkeypatch, capsys):
+def test_example_runs(path, meta, tiny, tmp_path, monkeypatch, capsys, no_network):
     if meta.get("offline") is False:
         pytest.skip("needs %s" % meta.get("why", "resources this test can't provide"))
     for module in meta.get("imports", []):

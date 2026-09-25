@@ -1,0 +1,4 @@
+title: OpenAI SDK
+summary: Any OpenAI SDK client (OpenAI, Claude, Gemini, Groq, Ollama via base_url) as the teacher, and wrap(client) so your model answers structured calls first.
+needs: [openai, laya]
+imports: [openai]

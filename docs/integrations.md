@@ -12,6 +12,12 @@
 | none | core | built-in LLM client: OpenAI, Gemini, Groq, OpenRouter, Together, Fireworks, DeepSeek, xAI, Mistral, Ollama, any OpenAI-compatible `url` ([teachers.md](teachers.md)) | respx-mocked HTTP |
 | `anthropic` | core | Claude teachers through the official SDK (`messages.parse`) | anthropic 1.8.0, mocked transport |
 | `litellm` | `integrations.litellm` | `teacher="litellm/<id>"` (any LiteLLM model, with cost), `guardrail(x, field, block)` Proxy `CustomGuardrail` (pre and post call), `tier(x, field, models)` model picker for a `Router` | litellm 1.102.1 |
+| `openai` | `integrations.openai` | `teacher(client, model)` for any `openai` client (any `base_url`: OpenAI, Claude's compatibility endpoint, Gemini, Groq, Ollama, ...); `wrap(client, x)`: `chat.completions.create` / `.parse` with a `response_format` that only asks for the model's fields is answered by the model when it is sure, otherwise the real call is made | openai 3.19.2 |
+| `instructor` | `integrations.instructor` | `wrap(client, x)`: an Instructor client whose `create(response_model=...)` is answered by the model when it is sure, else by Instructor's LLM call | instructor 1.17.0, openai 2.54.0 |
+| none | `integrations.portkey` | `webhook(x, field, block)`: takes Portkey's webhook guardrail request JSON (`beforeRequestHook` / `afterRequestHook`), returns `{"verdict": ...}`; sync or `await check.acall(body)` | Portkey's documented webhook format |
+| `llm-plugin` | `integrations.llm_plugin` | an `llm decide` command for simonw's `llm` CLI (registered through the `llm` entry point) and any `llm` model as the teacher (detected automatically) | llm 0.36 |
+| `outlines` | `integrations.outlines` | any Outlines model (transformers, llama.cpp, MLX, vLLM, Ollama, OpenAI, ...) as the teacher, with the answer schema enforced by structured generation (detected automatically) | outlines 1.3.3 (Python < 3.14), OpenAI-backed model on a mocked transport |
+| none | `integrations.marvin` | `classify(data, labels, ...)` and `classify_async` with Marvin's signature, answered by a `ds.model` (base Laya by default, or `model=`); `multi_label`, `agent`, `thread`, `context`, `handlers` and `prompt` raise | signature checked against marvin 3.2.7 |
 | `langchain` | `integrations.langchain` | any LangChain chat model as the teacher | langchain-core 1.6.5, langchain-openai 1.6.6 |
 | `llamaindex` | `integrations.llamaindex` | any LlamaIndex LLM as the teacher | llama-index-core 0.14.25, llama-index-llms-openai 0.8.2 |
 | `dspy` | `integrations.dspy` | a `dspy.LM` as the teacher | dspy 3.4.0 |
@@ -33,6 +39,23 @@ from decisionsmith.integrations.litellm import guardrail
 
 Guard = guardrail(ds.harness(Injection, teacher="claude-haiku-4-5", student="laya"), field="is_attack", block=[True])
 ```
+
+```python
+from openai import OpenAI
+from decisionsmith.integrations.openai import wrap
+
+client = wrap(OpenAI(), ds.model(Ticket))  # a trained model is sure more often
+r = client.chat.completions.parse(model="gpt-5-mini", messages=messages, response_format=Ticket)
+r.id == "decisionsmith"  # answered locally; otherwise the API answered as usual
+```
+
+`wrap` answers only when every field of the `response_format` is a field of the model's schema (or, for
+`ds.model(labels)`, a single field) and the value fits the format; anything else goes to the client unchanged.
+With `DS_OFFLINE=1` the wrapped client is never called: unsure answers are used as they are.
+
+Structured-output libraries: Outlines ships as a teacher (above); Marvin as a `classify` drop-in. Outlines
+examples cover Ollama, vLLM and OpenAI; a `transformers` example is not included because it needs model weights
+that the offline example run cannot download.
 
 The sections below are the full plan; each row moves to **Shipped** when it is built and tested.
 
@@ -61,9 +84,10 @@ Later engine work:
 |---|---|---|
 | **LiteLLM Proxy** guardrail | `pre_call` / `post_call` guardrail class: the harness decides allow / block | shipped |
 | **LiteLLM Router** | harness picks the model tier (cheap vs strong) per request | shipped |
-| **OpenAI-compatible clients** (OpenAI SDK, any `base_url` client) | wrap a client so a `response_format` with enum/boolean fields is answered by the harness | v0.2 |
-| **Instructor** hook | same Pydantic model; answer from the harness first, fall back to the LLM call when unsure | v0.2 |
-| **Portkey** | guardrail plugin | v0.2 |
+| **OpenAI-compatible clients** (OpenAI SDK, any `base_url` client) | wrap a client so a `response_format` with enum/boolean fields is answered by the harness | shipped |
+| **Instructor** hook | same Pydantic model; answer from the harness first, fall back to the LLM call when unsure | shipped |
+| **Portkey** | guardrail webhook | shipped |
+| **simonw/llm** | `llm decide` plugin command; `llm` models as teachers | shipped |
 | **Cloudflare AI Gateway / Kong AI Gateway** | routing / guardrail webhook recipe | v0.2 |
 | **OpenRouter** | as a teacher engine (built in: `"openrouter/<model>"`) + routing recipe | teacher shipped |
 | Vercel AI Gateway | recipe | later |

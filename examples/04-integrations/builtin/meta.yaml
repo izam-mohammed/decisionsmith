@@ -1,0 +1,3 @@
+title: Built-in LLM teachers
+summary: Every provider the built-in client speaks (OpenAI, Claude, Gemini, Groq, OpenRouter, Together, Fireworks, DeepSeek, xAI, Mistral, Ollama, vLLM, LM Studio, any URL) labelling for Laya.
+needs: [laya]

@@ -32,9 +32,16 @@ smolagents = ["smolagents>=1.0"]
 haystack = ["haystack-ai>=2.0"]
 pydantic-ai = ["pydantic-ai-slim>=1.0"]
 crewai = ["crewai>=1.0; python_version < '3.14'"]
+openai = ["openai>=1.40"]
+instructor = ["instructor>=1.10"]
+llm-plugin = ["llm>=0.26"]
+outlines = ["outlines>=1.0; python_version < '3.14'"]
 
 [project.scripts]
 decisionsmith = "decisionsmith.cli:main"
+
+[project.entry-points.llm]
+decisionsmith = "decisionsmith.integrations.llm_plugin"
 
 [project.urls]
 Homepage = "https://github.com/izam-mohammed/decisionsmith"
@@ -64,6 +71,12 @@ int-autogen = [{ include-group = "int-base" }, "autogen-agentchat==0.7.5", "auto
 int-semantic-kernel = [{ include-group = "int-base" }, "semantic-kernel==1.44.1", "azure-ai-agents>=1.2.0b3"]
 int-dspy = [{ include-group = "int-base" }, "dspy==3.4.0"]
 int-llamaindex = [{ include-group = "int-base" }, "llama-index-core==0.14.25", "llama-index-llms-openai==0.8.2"]
+int-openai = [{ include-group = "int-base" }, "openai==3.19.2"]
+int-instructor = [{ include-group = "int-base" }, "instructor==1.17.0", "openai==2.54.0"]
+int-portkey = [{ include-group = "int-base" }]
+int-llm-plugin = [{ include-group = "int-base" }, "llm==0.36"]
+int-outlines = [{ include-group = "int-base" }, "outlines==1.3.3; python_version < '3.14'", "openai==3.19.2", "ollama==0.6.2"]
+int-marvin = [{ include-group = "int-base" }, "marvin==3.2.7", "pydantic-ai==1.69.0"]
 
 [tool.uv]
 default-groups = ["dev"]
@@ -74,9 +87,13 @@ conflicts = [
     { extra = "crewai" },
     { extra = "dspy" },
     { extra = "haystack" },
+    { extra = "instructor" },
     { extra = "langchain" },
     { extra = "litellm" },
     { extra = "llamaindex" },
+    { extra = "llm-plugin" },
+    { extra = "openai" },
+    { extra = "outlines" },
     { extra = "pydantic-ai" },
     { extra = "semantic-kernel" },
     { extra = "smolagents" },
@@ -84,9 +101,15 @@ conflicts = [
     { group = "int-crewai" },
     { group = "int-dspy" },
     { group = "int-haystack" },
+    { group = "int-instructor" },
     { group = "int-langchain" },
     { group = "int-litellm" },
     { group = "int-llamaindex" },
+    { group = "int-llm-plugin" },
+    { group = "int-marvin" },
+    { group = "int-openai" },
+    { group = "int-outlines" },
+    { group = "int-portkey" },
     { group = "int-pydantic-ai" },
     { group = "int-semantic-kernel" },
     { group = "int-smolagents" },
@@ -95,6 +118,8 @@ conflicts = [
   [{ extra = "crewai" }, { extra = "mcp" }],
   [{ group = "int-crewai" }, { extra = "all" }],
   [{ extra = "crewai" }, { extra = "all" }],
+  [{ group = "int-marvin" }, { extra = "mcp" }],
+  [{ group = "int-marvin" }, { extra = "all" }],
   [{ group = "int-semantic-kernel" }, { extra = "mcp" }],
   [{ extra = "semantic-kernel" }, { extra = "mcp" }],
   [{ group = "int-semantic-kernel" }, { extra = "all" }],

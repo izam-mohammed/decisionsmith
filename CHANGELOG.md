@@ -5,13 +5,18 @@
 - **LLM teachers need no LLM library.** A built-in OpenAI-compatible client on httpx (OpenAI, Gemini, Groq,
   OpenRouter, Together, Fireworks, DeepSeek, xAI, Mistral, Ollama, any `ds.LLM(model, url=...)`), and Claude through
   the official `anthropic` SDK (`decisionsmith[anthropic]`). Core dependencies stay `pydantic` + `httpx`.
-- **Breaking: the `[llm]` extra is gone.** LiteLLM and Instructor are no longer used by the core. Model strings
+- **Breaking: the `[llm]` extra (LiteLLM + Instructor) is gone, and LLM teachers need no extra now.** LiteLLM and
+  Instructor are no longer used by the core. The simonw/llm plugin is `[llm-plugin]`, not `[llm]`. Model strings
   such as `"gpt-5"`, `"claude-sonnet-5"` and `"ollama/qwen3"` keep working without them; for anything else LiteLLM
   supports, install `decisionsmith[litellm]` and use `"litellm/<id>"`. An unknown model string without a provider
   prefix now raises a `ValueError` naming the fix. `bench` reports cost only for LiteLLM teachers.
 - Framework LLM objects as teachers: LangChain, LlamaIndex, DSPy, CrewAI, Pydantic AI, Haystack, smolagents,
   AutoGen and Semantic Kernel objects are detected and wrapped (`decisionsmith.integrations.<name>`, one extra each).
 - `decisionsmith.integrations.litellm`: LiteLLM teacher, Proxy guardrail, Router tier picker.
+- Gateways and structured output: `integrations.openai` (SDK client teacher, `wrap(client, x)`),
+  `integrations.instructor` (`wrap`), `integrations.portkey` (webhook guardrail), `integrations.llm_plugin`
+  (`llm decide` command, `llm` models as teachers), `integrations.outlines` (Outlines models as teachers) and
+  `integrations.marvin` (`classify` drop-in), with examples for every built-in and LiteLLM provider.
 - Async: `h.adecide()`, `h.acall()`, `model.apredict()` (native async for HTTP engines).
 - `DS_OFFLINE=1` / `DS_LAYA=<dir>`: run anything without keys or network, for examples, notebooks and demos.
 - Examples move to `examples/<group>/<name>/` with a generated README each and a generated gallery; CI runs every
