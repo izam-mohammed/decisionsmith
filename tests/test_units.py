@@ -192,7 +192,7 @@ HEAVY = {
     "pandas", "polars", "datasets", "duckdb", "pyspark", "dask", "ray", "label_studio_sdk", "argilla", "cleanlab",
     "huggingface_hub", "opentelemetry", "langfuse", "langsmith", "phoenix", "prometheus_client", "mlflow", "wandb",
     "deepeval", "inspect_ai", "fastapi", "starlette", "django", "flask", "litestar", "celery", "rq", "dramatiq",
-    "gradio", "streamlit", "instructor", "portkey_ai", "click", "pluggy", "ollama", "outlines_core",
+    "gradio", "streamlit", "instructor", "portkey_ai", "click", "pluggy", "ollama", "outlines_core", "haystack_integrations",
 }
 real = builtins.__import__
 

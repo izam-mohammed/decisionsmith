@@ -23,6 +23,10 @@
   `integrations.claude_agent_sdk` (`PreToolUse` / `PostToolUse` hooks), `integrations.llamaindex`
   (`relevance_filter`, `selector`, `as_tool`) and `integrations.google_adk` (`tool`, `before_model_callback` guard),
   with teacher examples for every provider each framework supports.
+- More agent frameworks: `integrations.crewai` (`tool`, task `guardrail`), `integrations.dspy` (`DecisionModule`,
+  `metric`), `integrations.haystack` (`router`, `document_filter` components), `integrations.autogen` (`tool`,
+  `stop_on` termination), `integrations.semantic_kernel` (`plugin`, `invocation_filter`), `integrations.smolagents`
+  (`tool`) and the new `integrations.agno` (`tool`, Agno models as teachers), with teacher examples per provider.
 - Async: `h.adecide()`, `h.acall()`, `model.apredict()` (native async for HTTP engines).
 - `DS_OFFLINE=1` / `DS_LAYA=<dir>`: run anything without keys or network, for examples, notebooks and demos.
 - Examples move to `examples/<group>/<name>/` with a generated README each and a generated gallery; CI runs every

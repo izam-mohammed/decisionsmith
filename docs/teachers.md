@@ -43,7 +43,7 @@ Base URLs were checked against each provider's documentation on 25/09/2026.
 - Claude uses the SDK's `messages.parse(..., output_format=<answers model>)`; a `refusal` stop reason raises
   `ds.EngineError`. The SDK's own retries apply.
 - Timeouts, 408, 429 and 5xx are retried with backoff (`Retry-After` is honoured, capped at 20 s).
-- Answers are one-hot (DECISIONS H26). Usage tokens are recorded in the log; `cost_usd` is only known through the
+- Answers are one-hot. Usage tokens are recorded in the log; `cost_usd` is only known through the
   LiteLLM teacher, so `bench` shows no cost for the built-in client.
 
 ## Framework LLM objects as the teacher
@@ -62,6 +62,7 @@ Pass the object; decisionsmith recognises it from its class and wraps it (the fr
 | smolagents | `OpenAIServerModel`, `LiteLLMModel`, `TransformersModel`, `InferenceClientModel`, ... | `smolagents` |
 | AutoGen (0.4+) | model clients: `OpenAIChatCompletionClient`, ... | `autogen` |
 | Semantic Kernel | chat completion services: `OpenAIChatCompletion`, ... | `semantic-kernel` |
+| Agno | any model: `OpenAIChat`, `Claude`, `Gemini`, `Ollama`, ... | `agno` |
 | Outlines | any Outlines model: `outlines.from_transformers(...)`, `from_ollama`, `from_vllm`, `from_openai`, ... (the answer schema is enforced) | `outlines` |
 | simonw/llm | any `llm` model: `llm.get_model("gpt-5-mini")`, plugin models, async models | `llm-plugin` |
 | OpenAI SDK | a client plus a model id: `integrations.openai.teacher(OpenAI(base_url=...), "model")` | `openai` |

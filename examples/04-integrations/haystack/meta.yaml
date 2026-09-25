@@ -1,0 +1,6 @@
+title: Haystack
+summary: Any Haystack chat generator as the teacher (OpenAI, Claude, Gemini, Ollama, Hugging Face), and pipeline components backed by your model, a router with one output per value and a document filter for RAG.
+needs: [haystack, laya]
+imports: [haystack]
+keys: [HF_TOKEN]
+pip: [anthropic-haystack, google-genai-haystack, ollama-haystack, huggingface-api-haystack]

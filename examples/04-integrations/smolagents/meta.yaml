@@ -1,0 +1,6 @@
+title: smolagents
+summary: A decisionsmith Tool for smolagents CodeAgent and ToolCallingAgent, and any smolagents model (OpenAI-compatible server, LiteLLM, Hugging Face Inference Providers) as the teacher.
+needs: [smolagents, laya]
+imports: [smolagents]
+keys: [HF_TOKEN]
+pip: ["smolagents[openai,litellm]"]

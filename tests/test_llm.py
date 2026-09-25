@@ -399,6 +399,7 @@ def test_framework_detection():
     assert framework(obj("semantic_kernel.connectors")) == "semantic_kernel"
     assert framework(obj("outlines.models.ollama")) == "outlines"
     assert framework(obj("llm.default_plugins.openai_models")) == "llm_plugin"
+    assert framework(obj("agno.models.openai.chat")) == "agno"
     assert framework(obj("somewhere.else")) is None
     sub = type("Mine", (type(obj("dspy.x")),), {"__module__": "myapp"})()
     assert framework(sub) == "dspy"

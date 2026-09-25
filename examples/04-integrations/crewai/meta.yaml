@@ -1,0 +1,6 @@
+title: CrewAI
+summary: A CrewAI LLM as the teacher (OpenAI, Claude, Gemini, Ollama, Azure), a BaseTool backed by your model, and a task guardrail that sends blocked outputs back to the agent.
+needs: [crewai, laya]
+imports: [crewai]
+keys: [AZURE_API_KEY, AZURE_ENDPOINT]
+pip: ["crewai[anthropic,google-genai,azure-ai-inference]"]

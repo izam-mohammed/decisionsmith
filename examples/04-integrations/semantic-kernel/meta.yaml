@@ -1,0 +1,6 @@
+title: Semantic Kernel
+summary: A plugin with a kernel function backed by your model, a function invocation filter that blocks calls by decision, and any Semantic Kernel chat service (OpenAI, Azure OpenAI, Claude, Ollama) as the teacher.
+needs: [semantic-kernel, laya]
+imports: [semantic_kernel]
+keys: [AZURE_OPENAI_API_KEY]
+pip: ["semantic-kernel[anthropic,ollama]"]

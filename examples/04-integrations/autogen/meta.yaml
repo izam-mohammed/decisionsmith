@@ -1,0 +1,6 @@
+title: AutoGen
+summary: A decision as an AutoGen FunctionTool, a termination condition that stops a team when a message is blocked, and any AutoGen model client (OpenAI, Claude, Azure OpenAI, Ollama) as the teacher.
+needs: [autogen, laya]
+imports: [autogen_agentchat, autogen_ext.models.openai]
+keys: [AZURE_OPENAI_API_KEY]
+pip: ["autogen-agentchat", "autogen-ext[openai,anthropic,ollama]"]

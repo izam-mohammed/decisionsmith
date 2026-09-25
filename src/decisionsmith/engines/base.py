@@ -67,6 +67,7 @@ FRAMEWORKS = {
     "semantic_kernel": "semantic_kernel",
     "outlines": "outlines",
     "llm": "llm_plugin",
+    "agno": "agno",
 }
 
 

@@ -1,0 +1,4 @@
+title: DSPy
+summary: Any dspy.LM as the teacher (OpenAI, Claude, Gemini, Ollama, any LiteLLM id), a dspy.Module whose forward is a decision, and a metric for dspy.Evaluate.
+needs: [dspy, laya]
+imports: [dspy]

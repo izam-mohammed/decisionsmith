@@ -40,6 +40,7 @@ langgraph = ["langgraph>=1.0"]
 openai-agents = ["openai-agents>=0.20"]
 claude-agent-sdk = ["claude-agent-sdk>=0.2"]
 google-adk = ["google-adk>=2.0"]
+agno = ["agno>=3.0"]
 
 [project.scripts]
 decisionsmith = "decisionsmith.cli:main"
@@ -69,7 +70,7 @@ dev = [
 [tool.uv]
 default-groups = ["dev"]
 # CrewAI and Semantic Kernel pin mcp < 2, so they never share the lock with the mcp extra. Integration test
-# environments are not in this lock: see tests/integrations/pyproject.toml (DECISIONS H43).
+# environments are not in this lock: see tests/integrations/pyproject.toml.
 conflicts = [
   [{ extra = "crewai" }, { extra = "mcp" }],
   [{ extra = "crewai" }, { extra = "all" }],
