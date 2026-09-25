@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Security: resume state is no longer pickled.** `checkpoint_latest/` now holds `state.safetensors` + `state.json`
+  (weights, optimizer, schedule, RNG); the old `state.pt` (`torch.load(weights_only=False)`) is refused, never
+  loaded. Training reaches laya's question normalisation through one checked shim with a clear error if laya changes it.
 - **Saved models are versioned folders.** `model.save()` writes `models/<name>-vN` (never overwrites a version)
   with the Laya checkpoint, `decisionsmith.json` (labels or schema, calibration, thresholds, provenance),
   `report.json` and `MODEL_CARD.md`. **Breaking:** `model.save("x")` now writes `x-v1`, then `x-v2`.

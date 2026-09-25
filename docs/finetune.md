@@ -37,7 +37,11 @@ about 1 minute end to end, 23 ms per decision. That's one small, easy dataset; y
 
 Options: `--epochs 4 --batch 8 --accum --lr --loss ce|proper|rlcd --seed 0 --device --resume --max-steps`.
 Training stops early when the calibration loss stops improving and keeps the best epoch. `--resume` picks up
-after the last finished epoch (same `--out`, same settings).
+after the last finished epoch (same `--out`, same settings), restoring the weights, optimizer, schedule and random
+state. Resume state is never pickled: tensors go to safetensors and the rest to JSON, so opening a resume folder
+from someone else can't run code. A `state.pt` from an older decisionsmith is refused with a message (delete the
+folder or train to a new `--out`). The safetensors-plus-JSON approach follows alpha912's resume work for Laya
+([laya#159](https://github.com/NandhaKishorM/laya/pull/159), [laya#167](https://github.com/NandhaKishorM/laya/pull/167)).
 
 ## Output (`runs/v1/`)
 
@@ -47,7 +51,7 @@ after the last finished epoch (same `--out`, same settings).
 | `report.json` `report.html` | base vs fine-tuned per field: accuracy, macro-F1, ECE, coverage curve, worst examples |
 | `MODEL_CARD.md` | base model, licence (Apache-2.0), credits |
 | `train_log.jsonl` | loss per epoch |
-| `checkpoint_latest/` | resume state (delete it before sharing) |
+| `checkpoint_latest/` | resume state: `state.safetensors` (weights, optimizer, RNG) + `state.json`; delete it before sharing |
 
 Temperatures are fitted on the calibration split only, per question type (and per option-count bucket with
 2,000+ samples), clamped to Laya's 0.5 to 5.0.

@@ -33,7 +33,8 @@ def test_finetune_writes_a_laya_checkpoint(tiny, toy_csv, tmp_path):
         "train_log.jsonl",
         "encoder/config.json",
         "tokenizer/tokenizer.json",
-        "checkpoint_latest/state.pt",
+        "checkpoint_latest/state.safetensors",
+        "checkpoint_latest/state.json",
     ):
         assert (out / name).exists(), name
     cfg = json.loads((out / "rl_agent_config.json").read_text())
@@ -99,6 +100,24 @@ def test_resume_continues(tiny, toy_csv, tmp_path):
     s = tr.Settings(epochs=2, resume=True, early_stop=False, head_only=True, accum=1, lr_head=5e-4)
     run = tr.train(agent, tr_rows, items, out, s, torch.device("cpu"), msgs.append)
     assert msgs[0] == "resumed at epoch 1" and [e["epoch"] for e in run["log"]] == [1, 2]
+    assert not list((tmp_path / "r" / "checkpoint_latest").glob("*.pt"))
+
+
+def test_resume_never_unpickles_old_state(tiny, toy_csv, tmp_path, monkeypatch):
+    out = tmp_path / "old"
+    (out / "checkpoint_latest").mkdir(parents=True)
+    (out / "checkpoint_latest" / "state.pt").write_bytes(b"not loaded")
+    monkeypatch.setattr(torch, "load", lambda *a, **k: pytest.fail("torch.load must not be called"))
+    rows = load(toy_csv, Ticket)
+    import laya
+
+    tr_rows, ca, _ = split(rows)
+    agent = laya.load(str(tiny), device="cpu")
+    items, _ = tr.build_items(agent, ca)
+    with pytest.raises(ValueError, match="pickled files are never loaded"):
+        tr.train(
+            agent, tr_rows, items, str(out), tr.Settings(epochs=1, resume=True, head_only=True), torch.device("cpu")
+        )
 
 
 def test_typed_decisions_without_schema(tiny, tmp_path):
