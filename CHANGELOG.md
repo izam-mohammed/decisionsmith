@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (25/09/2026)
 
 - **`report.switched`** on the report from `model.train()` and `h.finetune()`: True when the new weights are now in
   use, False when the old ones were kept. `model.save()` after a training run that kept the old model now says so
