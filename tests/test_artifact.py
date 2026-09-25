@@ -181,8 +181,9 @@ def test_harness_uses_saved_thresholds(tiny, tmp_path, monkeypatch):
     assert h._threshold("label") == 0.4
     fitted = {"label": {"temperature": 1.2, "threshold": 0.9}}
     monkeypatch.setattr(adapting, "fit", lambda *a: (fitted, []))
+    m._kept_old = True
     h.adapt()
-    assert m.calibration == fitted and h._threshold("label") == 0.9
+    assert m.calibration == fitted and h._threshold("label") == 0.9 and not m._kept_old
     assert ds.harness(m, teacher=teacher, log=str(tmp_path / "d.db"))._threshold("label") == 0.9
     h.close()
 

@@ -57,7 +57,7 @@ class Model:
         self.engine: Engine = _engine(engine, device)
         self.device = device
         self.trained: str | None = None
-        self._kept_old = False
+        self._kept_old = self._train_ran = False
         self.path: str | None = None
         self.meta: dict[str, Any] = {}
         self.calibration: dict[str, dict[str, Any]] = {}
@@ -245,8 +245,8 @@ class Model:
             model.train(texts, teacher="claude-haiku-4-5")               # only texts: the teacher labels them
             model.train(generate=300, teacher=ds.LLM(...), about="...")  # no data: the teacher writes it
 
-        The model switches to the trained weights unless they scored worse than before on the held-out test split;
-        `report.switched` says which happened.
+        The model switches to the trained weights unless they scored worse than before on the held-out test split
+        (a tie counts as switched); `report.switched` says which happened.
         """
         from .training.finetuning import finetune
 
@@ -277,7 +277,7 @@ class Model:
         tuned = report.details["finetuned"]["all"].get("accuracy") or 0.0
         n = report.details["finetuned"]["all"].get("n", 0)
         better = tuned >= base
-        report.switched, self._kept_old = better, not better
+        report.switched, self._kept_old, self._train_ran = better, not better, True
         if better:
             self.engine = LayaEngine(out, device=self.device)
             self.report, self.calibration = None, {}
@@ -307,7 +307,9 @@ class Model:
         """
         from .evaluation import evaluate
 
-        return evaluate(self, data, target)
+        report = evaluate(self, data, target)
+        self._kept_old = False
+        return report
 
     def save(self, path: str | os.PathLike[str] | None = None, *, verbose: bool = True) -> str:
         """Write a versioned model folder and return its path (the path is a name; use the returned path).

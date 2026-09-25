@@ -66,7 +66,7 @@ Temperatures are fitted on the calibration split only, per question type (and pe
 
 `h.finetune()` switches the harness to the new checkpoint only when `go` is true, and `report.switched` says
 whether it did. `model.train()` sets `report.switched` too: it switches unless the new weights scored worse on the
-test split. Modes never change by themselves.
+test split (a tie counts as switched). Modes never change by themselves.
 
 ## On a GPU (Kaggle or Colab)
 

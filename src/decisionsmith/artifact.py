@@ -164,16 +164,19 @@ def _write_json(path: str, value: Any) -> None:
 def _source(model: Model) -> str:
     from .engines import LayaEngine
 
+    kept = ValueError(
+        "nothing new to save: training ran but the new model scored worse on its test split, so the old one was "
+        "kept; add more (and more varied) rows and train again (check report.switched)"
+    )
     if model._kept_old:
-        raise ValueError(
-            "nothing new to save: training ran but the new model scored worse on its test split, so the old one "
-            "was kept; add more (and more varied) rows and train again (check report.switched)"
-        )
+        raise kept
     if model.trained or model.path:
         return str(model.trained or model.path)
     spec = model.engine.spec if isinstance(model.engine, LayaEngine) else None
     if spec and os.path.isdir(os.path.expanduser(spec)):
         return os.path.expanduser(spec)
+    if model._train_ran:
+        raise kept
     raise ValueError("nothing to save yet: train it first (model.train(...)), or load a saved one (ds.load)")
 
 

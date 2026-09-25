@@ -13,20 +13,21 @@ import decisionsmith as ds
 
 model = ds.model(["billing", "technical", "sales"])
 report = model.train("tickets.csv")
-print(report.switched)  # True: the model now uses the new weights; False: they scored worse, the old model stays
 model.evaluate("test.csv")
-path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
+if report.switched:  # False: the new weights scored worse on the test split, so the old model was kept
+    path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
 
-m = ds.load(path)  # on the server
-print(m.predict("I was charged twice"))
+    m = ds.load(path)  # on the server
+    print(m.predict("I was charged twice"))
 ```
 
 `tickets.csv` and `test.csv` need a `text` column and a `label` column (for a labels model) or one column per field
 (for a class). `path` is what `save` returns: the name you pass gets a version number.
 
-`model.train()` keeps the old model when the new weights score worse on its held-out test split, and
-`report.switched` says which happened. After a training run that kept the old model, `save` refuses, since nothing
-changed.
+`model.train()` switches to the new weights unless they score worse on its held-out test split (a tie counts as
+switched), and `report.switched` says which happened. After a training run that kept the old model, `save` refuses
+since nothing changed. A loaded model can be saved again once `model.evaluate()` (or `h.adapt()` on a harness using
+it) gives it new calibration and thresholds.
 
 ## Versions
 
@@ -79,9 +80,9 @@ class Ticket(BaseModel):
 
 
 model = ds.model(Ticket)
-model.train("tickets.csv")
-m = ds.load(model.save("models/ticket"), Ticket)
-print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...)
+if model.train("tickets.csv").switched:
+    m = ds.load(model.save("models/ticket"), Ticket)
+    print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...)
 ```
 
 ## Options

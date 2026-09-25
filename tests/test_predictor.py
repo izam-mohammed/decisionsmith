@@ -118,6 +118,26 @@ def test_train_keeps_old_model_when_worse(tiny, tmp_path, monkeypatch, capsys):
     assert m.save(str(tmp_path / "saved"), verbose=False) == str(tmp_path / "saved-v1")
 
 
+def test_evaluate_after_a_kept_train_can_be_saved(tiny, tmp_path, monkeypatch):
+    import decisionsmith.training.finetuning as fmod
+
+    monkeypatch.setattr(fmod, "finetune", _fake_train(0.5))
+    test = [{"text": t, "label": team_of(t)} for t in corpus(40)]
+    m = ds.load(ds.model(LABELS, str(tiny)).save(str(tmp_path / "base"), verbose=False))
+    m.train([("x", "sales")], out=str(tmp_path / "o"), verbose=False)
+    with pytest.raises(ValueError, match="nothing new to save"):
+        m.save(verbose=False)
+    m.evaluate(test)
+    assert m.save(verbose=False) == str(tmp_path / "base-v2")
+    monkeypatch.setenv("DS_OFFLINE", "1")
+    monkeypatch.setenv("DS_LAYA", str(tiny))
+    fresh = ds.model(LABELS)
+    fresh.train([("x", "sales")], out=str(tmp_path / "o2"), verbose=False)
+    fresh.evaluate(test)
+    with pytest.raises(ValueError, match="nothing new to save: training ran"):
+        fresh.save(str(tmp_path / "fresh"), verbose=False)
+
+
 def test_report_switched_only_after_training():
     rep = ds.Report("bench", "x", [])
     assert rep.switched is None and "switched" not in rep.to_dict()
