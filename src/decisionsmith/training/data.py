@@ -25,6 +25,17 @@ class Row:
     questions: dict[str, dict[str, Any]]
     targets: dict[str, list[float]]
     group: str | None = None
+    split: str | None = None
+
+
+SPLITS = ("train", "calib", "test")
+
+
+def text_hash(text: Any) -> str:
+    """A short, one-way fingerprint of a text (case and spacing ignored): provenance without storing the text."""
+    import hashlib
+
+    return hashlib.sha256(" ".join(str(text).lower().split()).encode()).hexdigest()[:16]
 
 
 class DataError(ValueError):
@@ -144,6 +155,8 @@ def load(
         if not isinstance(rec, dict):
             raise DataError("%s: expected an object" % where)
         held = str(rec.get("split") or "").strip().lower()
+        if held and held not in SPLITS:
+            raise DataError("%s: split must be one of %s (or blank), got %r" % (where, SPLITS, held))
         if (held == "test") if split != "test" else (held not in ("", "test")):
             continue
         rid = str(rec.get("id") or "row%d" % n)
@@ -162,6 +175,7 @@ def load(
                     "answers": {k: v for k, v in rec.items() if k in compiled.fields and v not in (None, "")},
                 }
             row = _from_answers(compiled, rec, rid, where, group)
+        row.split = held or None
         if row.targets:
             rows.append(row)
     ids = [r.id for r in rows]
@@ -173,7 +187,14 @@ def load(
 def split(
     rows: Sequence[Row], seed: int = 0, test: float = 0.15, calib: float = 0.10, calib_max: int = 400
 ) -> tuple[list[Row], list[Row], list[Row]]:
-    """Seeded train / calib / test split; rows sharing a `group` stay on one side."""
+    """Seeded train / calib / test split; rows sharing a `group` stay on one side.
+
+    Rows marked `split=calib` (a golden dataset) are always the calibration split; the rest are split as usual.
+    """
+    marked = [r for r in rows if r.split == "calib"]
+    if marked:
+        tr, ca, te = split([r for r in rows if r.split != "calib"], seed, test, calib, calib_max)
+        return tr + ca, marked, te
     if len(rows) < MIN_ROWS:
         raise DataError("need at least %d labelled rows to fine-tune, have %d" % (MIN_ROWS, len(rows)))
     groups: dict[str, list[Row]] = {}

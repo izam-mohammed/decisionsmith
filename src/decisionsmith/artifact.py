@@ -153,7 +153,7 @@ def save(model: Model, path: str | None) -> str:
         "thresholds": {n: c.get("threshold") for n, c in calibration.items() if "threshold" in c},
         "base_model": training.get("base"),
         "data_hash": training.get("data_hash"),
-        "training": training,
+        "training": {k: v for k, v in training.items() if k != "text_hashes"},
     }
     with open(os.path.join(dest, META), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)

@@ -320,3 +320,37 @@ def test_cli_eval_go(tmp_path, capsys, monkeypatch):
         w.writerows([t, truth(t)["team"]] for t in corpus(120))
     code, text = run(capsys, "eval", "models/x-v1", str(data), "--json")
     assert code == cli.OK and json.loads(text)["go"] is True
+
+
+def test_split_values_calib_and_errors(tmp_path):
+    rows = [{"text": "t%d" % i, "label": "sales", "split": "calib" if i < 5 else ""} for i in range(40)]
+    model = ds.model(LABELS, "fake")
+    loaded = data_mod.load(model._rows(rows), model.schema)
+    tr, ca, te = data_mod.split(loaded)
+    assert {r.id for r in ca} == {r.id for r in loaded if r.split == "calib"} and len(tr) + len(te) == 35
+    assert not {r.id for r in ca} & {r.id for r in tr + te}
+    with pytest.raises(data_mod.DataError, match="split must be one of"):
+        data_mod.load(model._rows([{"text": "a", "label": "sales", "split": "dev"}]), model.schema)
+
+
+def test_evaluate_flags_texts_it_trained_on(tiny, tmp_path):
+    import shutil
+
+    folder = tmp_path / "ckpt"
+    shutil.copytree(tiny, folder)
+    cfg = json.loads((folder / "rl_agent_config.json").read_text())
+    texts = corpus(12)
+    cfg["decisionsmith"] = {"text_hashes": [data_mod.text_hash(t.upper() + "  ") for t in texts[:4]]}
+    (folder / "rl_agent_config.json").write_text(json.dumps(cfg))
+    model = ds.model(LABELS, str(folder))
+    report = model.evaluate([(t, truth(t)["team"]) for t in texts])
+    assert report.details["overlap"] == 4 and not report.go
+    assert report.reasons[0].startswith("4 of 12 test texts were in the training data")
+    assert ds.model(LABELS, str(tiny)).evaluate([(t, truth(t)["team"]) for t in texts]).details["overlap"] == 0
+    assert ds.model(LABELS, FakeEngine(team)).evaluate([(t, truth(t)["team"]) for t in texts]).details["overlap"] == 0
+
+
+def test_training_hashes_unknown_checkpoint():
+    from decisionsmith.evaluation import training_hashes
+
+    assert training_hashes(ds.model(LABELS, "laya")) == set()

@@ -47,6 +47,10 @@ Duplicates (same text, ignoring case and spacing) are dropped first.
 | `test` | `0.2` | the share of rows marked `split=test`, held out for `evaluate` |
 | `out` | `"golden.csv"` | another path, or `None` to only return the rows |
 
+The `split` column takes `train`, `calib` or `test` (blank counts as `train`). `test` rows are held out for
+`evaluate` and never trained on; rows you mark `calib` are used to fit the confidence calibration instead of a
+random slice. Any other value is an error that names the line.
+
 Review the CSV before you train: fix a wrong label in place, or delete the row. Rows the LLM could not label are
 left out and counted in the summary line.
 

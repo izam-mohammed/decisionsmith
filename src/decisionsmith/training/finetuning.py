@@ -265,6 +265,7 @@ def finetune(
         "base_id": base_id,
         "subfolder": sub,
         "data_hash": _data_hash(rows),
+        "text_hashes": sorted({data_mod.text_hash(r.text) for r in rows}),
         "seed": seed,
         "train": "head" if head_only else "full",
         "loss": loss,
