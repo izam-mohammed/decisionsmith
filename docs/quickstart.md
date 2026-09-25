@@ -37,7 +37,7 @@ h("You charged me twice, refund now!")  # the teacher answers; Laya runs silentl
 | 5 | `h.finetune()` | trains Laya on the log; the harness switches only if the new model is better |
 | 6 | `mode={"team": "cascade"}` | move a field when `status()` says it's ready |
 
-The first `laya` call downloads the checkpoint (about 1.7 GB) into the Hugging Face cache.
+The first `laya` call downloads the English checkpoint (about 850 MB) into the Hugging Face cache.
 Try it without keys: `DS_OFFLINE=1 python examples/01-starters/quickstart/main.py` (LLM answers come from a local
 stand-in; see [teachers.md](teachers.md#offline-mode)).
 

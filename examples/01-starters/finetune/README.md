@@ -3,7 +3,7 @@
 ds.finetune on the toy CSV, with the go/no-go report.
 
 ```python
-"""Fine-tune Laya on labelled data and read the report. Head-only on this small set: minutes on a laptop."""
+"""Fine-tune Laya on labelled data and read the report. Small data trains only the head, so a laptop is enough."""
 
 from pathlib import Path
 from typing import Annotated, Literal

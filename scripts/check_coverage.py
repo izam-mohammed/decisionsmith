@@ -16,7 +16,8 @@ def main(argv: list[str] | None = None) -> int:
         files = json.load(f)["files"]
     low = {}
     for path, data in sorted(files.items()):
-        if any(x in path for x in args.skip) or (args.only and not any(x in path for x in args.only)):
+        posix = path.replace("\\", "/")
+        if any(x in posix for x in args.skip) or (args.only and not any(x in posix for x in args.only)):
             continue
         s = data["summary"]
         total = s["num_statements"] + s.get("num_branches", 0)
