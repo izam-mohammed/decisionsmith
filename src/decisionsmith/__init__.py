@@ -6,7 +6,7 @@ from . import testing
 from .core import Result, harness
 from .engines import Engine, EngineError
 from .engines import LLMEngine as LLM
-from .predictor import Model, model
+from .predictor import Model, load, model
 from .report import Report
 from .schema import Options, Scale
 from .status import Status
@@ -45,6 +45,7 @@ __all__ = [
     "bench",
     "finetune",
     "harness",
+    "load",
     "model",
     "testing",
 ]

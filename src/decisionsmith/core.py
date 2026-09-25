@@ -70,6 +70,7 @@ class Harness(Generic[T]):
             student = schema if student is None else student
             self.simple = schema.simple
             schema = schema.schema.model
+        self._model: Model | None = student if isinstance(student, Model) else None
         if isinstance(student, Model):
             student = student.engine
         self.schema: Schema = compile_schema(schema)
@@ -112,7 +113,8 @@ class Harness(Generic[T]):
         return adapting.adapt_key(self.schema.name, self.student.name if self.student else None)
 
     def _load_adapt(self) -> None:
-        self._calib: dict[str, dict[str, Any]] = (self.log.get(self._adapt_key(), {}) if self.log else {}) or {}
+        saved = self._model.calibration if self._model is not None else {}
+        self._calib: dict[str, dict[str, Any]] = (self.log.get(self._adapt_key(), {}) if self.log else {}) or saved
 
     def _threshold(self, name: str) -> float:
         return adapting.threshold_for(self._calib, name, self.threshold)
@@ -318,6 +320,8 @@ class Harness(Generic[T]):
         calib, table = adapting.fit(self.schema, rows, self._calib, target)
         log.set(self._adapt_key(), calib)
         self._calib = calib
+        if self._model is not None:
+            self._model.calibration = {n: dict(c) for n, c in calib.items()}
         reasons = [
             "thresholds target %.0f%% accuracy on held-out rows; no threshold means the field always "
             "asks the teacher" % (target * 100)
@@ -356,6 +360,7 @@ class Harness(Generic[T]):
         if report.go:
             device = self.student.device if isinstance(self.student, LayaEngine) else None
             self.student = LayaEngine(out, device=device)
+            self._model = None
             self._load_adapt()
             report.reasons.append("the harness now uses student='laya:%s'; pass that next time you build it" % out)
             if all(m == "teacher" for m in self.modes.values()):

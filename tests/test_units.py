@@ -175,6 +175,7 @@ def test_public_functions_survive_submodule_imports():
             "bench",
             "finetune",
             "harness",
+            "load",
             "model",
             "testing",
         ]
