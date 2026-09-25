@@ -15,6 +15,9 @@ print(report)  # per field: decisions, accuracy, macro-F1, ECE, threshold, cover
 print(report.go, report.reasons)
 ```
 
+`tickets.csv` and `test.csv` need a `text` column and a `label` column (for a labels model) or one column per field
+(for a class, e.g. `team` and `wants_refund`).
+
 Test on rows the model never trained on. A file with a `split` column (such as the `golden.csv` that `ds.golden`
 writes) is handled for you: `model.train()` never trains on `split=test` rows, and `model.evaluate()` uses only
 them. A trained model also records one-way fingerprints of its training texts (short hashes, never the texts), so
@@ -27,8 +30,13 @@ them. A trained model also records one-way fingerprints of its training texts (s
 | accuracy | share of decisions that match the label |
 | macro-F1 | accuracy that counts every option equally, so a rare option can't hide |
 | ECE | calibration error: how far the model's confidence is from how often it is right (0 is perfect) |
-| threshold | the lowest confidence at which the model reached `target` accuracy on this data; `-` means none did |
+| threshold | the lowest confidence at which the model reached `target` accuracy; `-` means none did |
 | coverage | share of decisions at or above that threshold, so the share the student would answer in cascade |
+| accuracy_when_sure | accuracy on the decisions at or above the threshold |
+
+The threshold is picked on one half of the rows and coverage and accuracy_when_sure are measured on the other half
+(the halves come from a hash of each text), so the numbers aren't graded on the rows that chose the threshold.
+With a single row both come from that row.
 | `report.details["fields"][name]["confusions"]` | wrong answers counted as `gold -> predicted` |
 | `report.details["worst"]` | the ten most confident wrong answers, with their text |
 | `report.details["ms_per_text"]` | average latency per text on this machine |

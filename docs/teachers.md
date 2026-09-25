@@ -5,6 +5,11 @@ the core needs only `pydantic` and `httpx`. Give the teacher as a string, as `ds
 the framework you already use.
 
 ```python
+import decisionsmith as ds
+from app import Ticket  # your Pydantic class
+
+texts = ["You charged me twice", "The app crashes on login", "What does the Pro plan cost?"] * 10
+model = ds.model(Ticket)
 h = ds.harness(Ticket, teacher="gpt-5-mini", student="laya")
 model.train(texts, teacher="claude-haiku-4-5")
 model.train(generate=300, teacher=ds.LLM("my-model", url="http://localhost:8000/v1"), about="support emails")
@@ -67,6 +72,7 @@ Pass the object; decisionsmith recognises it from its class and wraps it (the fr
 | simonw/llm | any `llm` model: `llm.get_model("gpt-5-mini")`, plugin models, async models | `llm-plugin` |
 | OpenAI SDK | a client plus a model id: `integrations.openai.teacher(OpenAI(base_url=...), "model")` | `openai` |
 
+<!-- no-test: needs langchain-anthropic; examples/04-integrations/langchain runs it in CI -->
 ```python
 from langchain_anthropic import ChatAnthropic
 

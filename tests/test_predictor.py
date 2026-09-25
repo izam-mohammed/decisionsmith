@@ -60,7 +60,7 @@ def test_train_predict_save_load(tiny, tmp_path, capsys, monkeypatch):
     m = ds.model(LABELS, "laya:%s" % tiny, device="cpu")
     rows = [(t, team_of(t)) for t in corpus(60)]
     with pytest.raises(ValueError, match="train"):
-        m.save("x")
+        ds.model(LABELS, "laya").save("x")
     rep = m.train(rows, epochs=1)
     out = capsys.readouterr().out
     assert "trained on 45 rows" in out and "rough" in out and rep.kind == "finetune"

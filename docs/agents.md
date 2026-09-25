@@ -83,8 +83,10 @@ Built on Laya (Apache-2.0, Nandakishor M / Convai Innovations). Not affiliated w
 ## Default pattern
 ```python
 import decisionsmith as ds
+from app import Ticket  # your Pydantic class
+
 h = ds.harness(Ticket, teacher="claude-sonnet-5", student="laya", mode="shadow")
-ticket = h(text)
+ticket = h("You charged me twice, refund now!")
 ```
 ## Rules
 - Decision models fail zero-shot: start with `mode="shadow"` (teacher answers) until `h.status()` says ready.

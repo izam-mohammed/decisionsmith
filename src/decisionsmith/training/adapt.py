@@ -20,7 +20,7 @@ def adapt_key(schema: str, student: str | None) -> str:
 def threshold_for(calib: dict[str, dict[str, Any]], name: str, default: float) -> float:
     """The adapted threshold for a field; a field adapt() found no safe threshold for never trusts the student."""
     c = calib.get(name)
-    if c is None:
+    if c is None or "threshold" not in c:
         return default
     return 1.01 if c.get("threshold") is None else float(c["threshold"])
 

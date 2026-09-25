@@ -7,6 +7,7 @@ Start with an LLM. End with a fast decision model you trained. One line in betwe
 uv add "decisionsmith[all]"
 ```
 
+<!-- no-test: uses the Ticket class defined in the next block, which runs it -->
 ```python
 import decisionsmith as ds
 
@@ -19,7 +20,10 @@ That's it. `Ticket` is a normal Pydantic model:
 
 ```python
 from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field
+
+import decisionsmith as ds
 
 
 class Ticket(BaseModel):
@@ -47,6 +51,7 @@ field moves to the student.
 ## The loop
 
 ```python
+texts = open("texts.txt", encoding="utf-8").read().splitlines()  # your texts, one per line
 h = ds.harness(Ticket, teacher="claude-sonnet-5", student="laya", mode="shadow")  # teacher answers, student measured
 h.many(texts)  # every decision is logged (decisions.db)
 print(h.status())  # per field: agreement, sure rate, accuracy when sure, what to do next
