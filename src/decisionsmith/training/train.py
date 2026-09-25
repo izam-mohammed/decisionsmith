@@ -12,8 +12,10 @@ from typing import Any
 
 import torch
 
+from . import checkpoint
 from .calibrate import nll
 from .data import Row
+from .laya_compat import internal_question
 
 LOSSES = ("ce", "proper", "rlcd")
 
@@ -63,7 +65,6 @@ def build_items(
     agent: Any, rows: Sequence[Row], rng: random.Random | None = None
 ) -> tuple[list[Item], list[tuple[str, str]]]:
     """Rows -> Laya items at the checkpoint's own max_len/head_max_len; options shuffled when `rng` is given."""
-    from laya.agent import Agent
     from laya.common import QTYPES, build_sequence, render_options, serialize_state
 
     max_len = agent.cfg.get("max_len", 512)
@@ -74,8 +75,7 @@ def build_items(
     for r in rows:
         state_ids = tok(serialize_state(r.text).replace(tok.mask_token, " "), add_special_tokens=False)["input_ids"]
         for qid, q in r.questions.items():
-            Agent._check_question(qid, q)
-            internal = Agent._to_internal(q)
+            internal = internal_question(qid, q)
             k = len(render_options(internal))
             target = r.targets[qid]
             if len(target) != k:
@@ -160,8 +160,8 @@ def predict_logits(
     return out
 
 
-def _state_path(out: str) -> str:
-    return os.path.join(out, "checkpoint_latest", "state.pt")
+def _state_dir(out: str) -> str:
+    return os.path.join(out, "checkpoint_latest")
 
 
 def _trainable(model: Any) -> dict[str, torch.nn.Parameter]:
@@ -210,8 +210,8 @@ def train(
 
     start_epoch, step, best_loss = 0, 0, math.inf
     best: dict[str, torch.Tensor] | None = None
-    if s.resume and os.path.exists(_state_path(out)):
-        st = torch.load(_state_path(out), map_location="cpu", weights_only=False)
+    if s.resume and checkpoint.exists(_state_dir(out)):
+        st = checkpoint.load(_state_dir(out))
         saved = (st.get("head_only"), st.get("loss"))
         if saved != (s.head_only, s.loss):
             raise ValueError(
@@ -222,6 +222,7 @@ def train(
         optimizer.load_state_dict(st["optimizer"])
         scheduler.load_state_dict(st["scheduler"])
         start_epoch, step, best_loss, best = st["epoch"], st["step"], st["best_loss"], st["best"]
+        torch.set_rng_state(st["rng"])
         s.log.extend(st["log"])
         say("resumed at epoch %d" % start_epoch)
 
@@ -285,8 +286,8 @@ def train(
         else:
             stale += 1
         if rank == 0:
-            os.makedirs(os.path.dirname(_state_path(out)), exist_ok=True)
-            torch.save(
+            checkpoint.save(
+                _state_dir(out),
                 {
                     "model": {n: p.detach().cpu() for n, p in params.items()},
                     "optimizer": optimizer.state_dict(),
@@ -298,8 +299,8 @@ def train(
                     "log": s.log,
                     "head_only": s.head_only,
                     "loss": s.loss,
+                    "rng": torch.get_rng_state(),
                 },
-                _state_path(out),
             )
         if s.early_stop and stale >= 1:
             say("calibration loss stopped improving; keeping the best epoch")
