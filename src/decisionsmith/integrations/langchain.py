@@ -1,4 +1,4 @@
-"""LangChain (`pip install "decisionsmith[langchain]"`): chat models as teachers, and decisions inside chains.
+"""LangChain (`uv add "decisionsmith[langchain]"`): chat models as teachers, and decisions inside chains.
 
 ds.harness(Ticket, teacher=ChatOpenAI(model="gpt-5-mini"))            # any chat model, detected automatically
 chain = prompt | llm | DecisionRunnable(h, "team")                    # invoke / ainvoke / batch, composes with |

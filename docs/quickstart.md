@@ -4,7 +4,7 @@
 > mode, read `status()`, then `adapt()` and `finetune()`. Everything runs locally except the LLM calls.
 
 ```bash
-pip install "decisionsmith[all]"
+uv add "decisionsmith[all]"
 export ANTHROPIC_API_KEY=...          # or OPENAI_API_KEY, GEMINI_API_KEY, ...; or a local Ollama model
 ```
 

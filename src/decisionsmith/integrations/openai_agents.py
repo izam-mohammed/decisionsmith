@@ -1,4 +1,4 @@
-"""OpenAI Agents SDK (`pip install "decisionsmith[openai-agents]"`): guardrails, a function tool and a router backed
+"""OpenAI Agents SDK (`uv add "decisionsmith[openai-agents]"`): guardrails, a function tool and a router backed
 by a model or harness, and any Agents SDK model (OpenAI, `LitellmModel`, ...) as the teacher.
 
 Agent(..., input_guardrails=[input_guardrail(ds.harness(Injection, ...), "is_attack")])

@@ -1,4 +1,4 @@
-"""simonw/llm (`pip install "decisionsmith[llm-plugin]"`): an `llm decide` command, and any `llm` model as the teacher.
+"""simonw/llm (`uv add "decisionsmith[llm-plugin]"`): an `llm decide` command, and any `llm` model as the teacher.
 
 llm decide "you charged me twice" -l billing -l technical -l sales             # base Laya decides
 llm decide "..." -l billing -l technical --engine laya:./runs/v1 --teacher gpt-5-mini   # an llm model when unsure

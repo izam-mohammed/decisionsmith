@@ -1,4 +1,4 @@
-"""DSPy (`pip install "decisionsmith[dspy]"`): a `dspy.LM` as the teacher, a `dspy.Module` backed by a decision,
+"""DSPy (`uv add "decisionsmith[dspy]"`): a `dspy.LM` as the teacher, a `dspy.Module` backed by a decision,
 and a metric for `dspy.Evaluate`.
 
 ds.harness(Ticket, teacher=dspy.LM("openai/gpt-5-mini"))            # detected automatically

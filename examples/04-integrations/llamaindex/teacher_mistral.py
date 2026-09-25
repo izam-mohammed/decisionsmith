@@ -1,4 +1,4 @@
-"""Mistral through LlamaIndex (MISTRAL_API_KEY; pip install llama-index-llms-mistralai)."""
+"""Mistral through LlamaIndex (MISTRAL_API_KEY; uv add llama-index-llms-mistralai)."""
 
 from _schema import TEXTS, Ticket
 from llama_index.llms.mistralai import MistralAI

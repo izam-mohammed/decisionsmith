@@ -1,4 +1,4 @@
-"""Instructor (`pip install "decisionsmith[instructor]"`): answer from a model or harness first, fall back to the LLM.
+"""Instructor (`uv add "decisionsmith[instructor]"`): answer from a model or harness first, fall back to the LLM.
 
 client = wrap(instructor.from_openai(OpenAI()), ds.model(Ticket))
 client.create(response_model=Ticket, messages=[...], model="gpt-5-mini")   # the model answers when it is sure

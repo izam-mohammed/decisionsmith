@@ -26,8 +26,8 @@ for text in TEXTS[:3]:
 ## Run
 
 ```bash
-pip install "decisionsmith[instructor,laya]"
-python examples/04-integrations/instructor/in_framework_fallback.py
+uv add "decisionsmith[instructor,laya]"
+uv run python examples/04-integrations/instructor/in_framework_fallback.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

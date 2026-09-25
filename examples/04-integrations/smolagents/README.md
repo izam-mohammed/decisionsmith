@@ -39,13 +39,13 @@ for text in TEXTS[:3]:
 ## Run
 
 ```bash
-pip install "decisionsmith[smolagents,laya]"
-pip install smolagents[openai,litellm]
+uv add "decisionsmith[smolagents,laya]"
+uv add smolagents[openai,litellm]
 export HF_TOKEN=...
-python examples/04-integrations/smolagents/in_framework_tool.py
-python examples/04-integrations/smolagents/teacher_inference_client.py
-python examples/04-integrations/smolagents/teacher_litellm.py
-python examples/04-integrations/smolagents/teacher_openai_server.py
+uv run python examples/04-integrations/smolagents/in_framework_tool.py
+uv run python examples/04-integrations/smolagents/teacher_inference_client.py
+uv run python examples/04-integrations/smolagents/teacher_litellm.py
+uv run python examples/04-integrations/smolagents/teacher_openai_server.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

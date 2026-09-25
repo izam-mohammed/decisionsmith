@@ -1,4 +1,4 @@
-"""Pydantic AI (`pip install "decisionsmith[pydantic-ai]"`): any Pydantic AI model as the teacher, a tool, an output
+"""Pydantic AI (`uv add "decisionsmith[pydantic-ai]"`): any Pydantic AI model as the teacher, a tool, an output
 validator and an agent router.
 
 ds.harness(Ticket, teacher=OpenAIChatModel("gpt-5-mini"))            # detected automatically

@@ -1,4 +1,4 @@
-"""AutoGen (`pip install "decisionsmith[autogen]"`): any AutoGen model client as the teacher, a `FunctionTool` and a
+"""AutoGen (`uv add "decisionsmith[autogen]"`): any AutoGen model client as the teacher, a `FunctionTool` and a
 termination condition that stops a team when a message is blocked.
 
 ds.harness(Ticket, teacher=OpenAIChatCompletionClient(model="gpt-5-mini"))  # detected automatically

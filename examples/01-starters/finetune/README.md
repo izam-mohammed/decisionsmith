@@ -31,8 +31,8 @@ print('use it: ds.harness(Ticket, teacher=..., student="laya:%s")' % report.path
 ## Run
 
 ```bash
-pip install "decisionsmith[laya]"
-python examples/01-starters/finetune/main.py
+uv add "decisionsmith[laya]"
+uv run python examples/01-starters/finetune/main.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

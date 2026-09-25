@@ -3,4 +3,4 @@ summary: Any LlamaIndex LLM as the teacher (OpenAI, Claude, Gemini, Bedrock, Azu
 needs: [llamaindex, laya]
 imports: [llama_index.core]
 keys: [AZURE_OPENAI_API_KEY, HF_TOKEN]
-pip: [llama-index-llms-openai, llama-index-llms-anthropic, llama-index-llms-google-genai, llama-index-llms-bedrock-converse, llama-index-llms-azure-openai, llama-index-llms-mistralai, llama-index-llms-groq, llama-index-llms-ollama, llama-index-llms-huggingface-api]
+packages: [llama-index-llms-openai, llama-index-llms-anthropic, llama-index-llms-google-genai, llama-index-llms-bedrock-converse, llama-index-llms-azure-openai, llama-index-llms-mistralai, llama-index-llms-groq, llama-index-llms-ollama, llama-index-llms-huggingface-api]

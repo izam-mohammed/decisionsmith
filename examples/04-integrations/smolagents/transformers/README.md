@@ -19,9 +19,9 @@ print(h.status())
 ## Run
 
 ```bash
-pip install "decisionsmith[smolagents,laya]"
-pip install smolagents[transformers]
-python examples/04-integrations/smolagents/transformers/teacher_transformers.py
+uv add "decisionsmith[smolagents,laya]"
+uv add smolagents[transformers]
+uv run python examples/04-integrations/smolagents/transformers/teacher_transformers.py
 ```
 
 Needs the Qwen/Qwen3-0.6B weights (TransformersModel loads them when it is built, so the offline test can't run it) to run for real.

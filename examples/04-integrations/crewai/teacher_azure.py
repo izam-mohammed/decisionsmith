@@ -1,6 +1,6 @@
 """An Azure OpenAI deployment through CrewAI (AZURE_API_KEY, AZURE_ENDPOINT).
 
-pip install "crewai[azure-ai-inference]"; the model id is `azure/<your deployment name>`.
+uv add "crewai[azure-ai-inference]"; the model id is `azure/<your deployment name>`.
 """
 
 from _schema import TEXTS, Ticket

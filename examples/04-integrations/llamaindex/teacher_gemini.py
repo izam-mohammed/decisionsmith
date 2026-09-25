@@ -1,4 +1,4 @@
-"""Gemini through LlamaIndex's Google GenAI LLM (GOOGLE_API_KEY; pip install llama-index-llms-google-genai).
+"""Gemini through LlamaIndex's Google GenAI LLM (GOOGLE_API_KEY; uv add llama-index-llms-google-genai).
 
 Passing max_tokens and context_window skips the model metadata lookup at construction.
 """

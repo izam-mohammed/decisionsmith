@@ -29,7 +29,7 @@ def need(engine: str, message: str, extra: str, *modules: str) -> list[Any]:
     try:
         return [__import__(m) for m in modules]
     except ImportError:
-        raise EngineError(engine, message, "pip install 'decisionsmith[%s]'" % extra) from None
+        raise EngineError(engine, message, "uv add 'decisionsmith[%s]'" % extra) from None
 
 
 def response(engine: Any, raw: Any, questions: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:

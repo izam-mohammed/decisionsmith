@@ -1,4 +1,4 @@
-"""Claude through LlamaIndex (ANTHROPIC_API_KEY; pip install llama-index-llms-anthropic)."""
+"""Claude through LlamaIndex (ANTHROPIC_API_KEY; uv add llama-index-llms-anthropic)."""
 
 from _schema import TEXTS, Ticket
 from llama_index.llms.anthropic import Anthropic

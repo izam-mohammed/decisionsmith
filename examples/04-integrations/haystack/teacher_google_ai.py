@@ -1,4 +1,4 @@
-"""Gemini through Haystack's Google GenAI generator (GEMINI_API_KEY or GOOGLE_API_KEY; pip install
+"""Gemini through Haystack's Google GenAI generator (GEMINI_API_KEY or GOOGLE_API_KEY; uv add
 google-genai-haystack)."""
 
 from _schema import TEXTS, Ticket

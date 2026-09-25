@@ -1,4 +1,4 @@
-"""OpenAI SDK (`pip install "decisionsmith[openai]"`): any `openai` client as the teacher, and `wrap(client, x)`.
+"""OpenAI SDK (`uv add "decisionsmith[openai]"`): any `openai` client as the teacher, and `wrap(client, x)`.
 
 ds.harness(Ticket, teacher=teacher(OpenAI(base_url=..., api_key=...), "llama-3.3-70b-versatile"))
 client = wrap(OpenAI(), ds.model(Ticket))   # parse(response_format=Ticket): the model answers when it is sure

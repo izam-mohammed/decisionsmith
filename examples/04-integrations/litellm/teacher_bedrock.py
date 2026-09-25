@@ -1,4 +1,4 @@
-"""Amazon Nova on Bedrock through LiteLLM (AWS credentials and AWS_REGION_NAME; pip install boto3)."""
+"""Amazon Nova on Bedrock through LiteLLM (AWS credentials and AWS_REGION_NAME; uv add boto3)."""
 
 from _schema import TEXTS, Ticket
 

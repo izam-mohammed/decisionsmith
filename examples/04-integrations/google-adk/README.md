@@ -52,9 +52,9 @@ asyncio.run(main())
 ## Run
 
 ```bash
-pip install "decisionsmith[google-adk,laya]"
-python examples/04-integrations/google-adk/in_framework_guard.py
-python examples/04-integrations/google-adk/in_framework_tool.py
+uv add "decisionsmith[google-adk,laya]"
+uv run python examples/04-integrations/google-adk/in_framework_guard.py
+uv run python examples/04-integrations/google-adk/in_framework_tool.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

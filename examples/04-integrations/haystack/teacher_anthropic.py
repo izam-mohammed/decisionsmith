@@ -1,4 +1,4 @@
-"""Claude through Haystack (ANTHROPIC_API_KEY; pip install anthropic-haystack)."""
+"""Claude through Haystack (ANTHROPIC_API_KEY; uv add anthropic-haystack)."""
 
 from _schema import TEXTS, Ticket
 from haystack_integrations.components.generators.anthropic import AnthropicChatGenerator

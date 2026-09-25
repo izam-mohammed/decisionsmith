@@ -3,4 +3,4 @@ summary: A decisionsmith Tool for smolagents CodeAgent and ToolCallingAgent, and
 needs: [smolagents, laya]
 imports: [smolagents]
 keys: [HF_TOKEN]
-pip: ["smolagents[openai,litellm]"]
+packages: ["smolagents[openai,litellm]"]

@@ -1,4 +1,4 @@
-"""CrewAI (`pip install "decisionsmith[crewai]"`): a CrewAI `LLM` as the teacher, a decision as a `BaseTool`, and a
+"""CrewAI (`uv add "decisionsmith[crewai]"`): a CrewAI `LLM` as the teacher, a decision as a `BaseTool`, and a
 task guardrail.
 
 ds.harness(Ticket, teacher=crewai.LLM(model="gpt-5-mini"))            # detected automatically

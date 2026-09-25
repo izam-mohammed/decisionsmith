@@ -42,14 +42,14 @@ print("all fields: %.0f%%" % dspy.Evaluate(devset=devset, metric=metric(), num_t
 ## Run
 
 ```bash
-pip install "decisionsmith[dspy,laya]"
-python examples/04-integrations/dspy/in_framework_metric.py
-python examples/04-integrations/dspy/in_framework_module.py
-python examples/04-integrations/dspy/teacher_anthropic.py
-python examples/04-integrations/dspy/teacher_any_litellm_id.py
-python examples/04-integrations/dspy/teacher_gemini.py
-python examples/04-integrations/dspy/teacher_ollama.py
-python examples/04-integrations/dspy/teacher_openai.py
+uv add "decisionsmith[dspy,laya]"
+uv run python examples/04-integrations/dspy/in_framework_metric.py
+uv run python examples/04-integrations/dspy/in_framework_module.py
+uv run python examples/04-integrations/dspy/teacher_anthropic.py
+uv run python examples/04-integrations/dspy/teacher_any_litellm_id.py
+uv run python examples/04-integrations/dspy/teacher_gemini.py
+uv run python examples/04-integrations/dspy/teacher_ollama.py
+uv run python examples/04-integrations/dspy/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

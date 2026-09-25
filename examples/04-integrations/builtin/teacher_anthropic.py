@@ -1,4 +1,4 @@
-"""Claude as the teacher, through the official SDK (ANTHROPIC_API_KEY; pip install "decisionsmith[anthropic]").
+"""Claude as the teacher, through the official SDK (ANTHROPIC_API_KEY; uv add "decisionsmith[anthropic]").
 
 The teacher labels the texts; the rows train Laya (`model.train(rows)`) or go to review first.
 """

@@ -43,26 +43,26 @@ else:
 |---|---|
 | [`in_framework_guardrail.py`](in_framework_guardrail.py) | A task guardrail: your model reads the agent's answer, and CrewAI asks again when it promises a refund |
 | [`in_framework_tool.py`](in_framework_tool.py) | A CrewAI tool: the agent calls `route_ticket` and your harness answers (OPENAI_API_KEY). |
-| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through CrewAI (ANTHROPIC_API_KEY; pip install "crewai[anthropic]"). |
+| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through CrewAI (ANTHROPIC_API_KEY; uv add "crewai[anthropic]"). |
 | [`teacher_azure.py`](teacher_azure.py) | An Azure OpenAI deployment through CrewAI (AZURE_API_KEY, AZURE_ENDPOINT). |
-| [`teacher_gemini.py`](teacher_gemini.py) | Gemini through CrewAI (GEMINI_API_KEY; pip install "crewai[google-genai]"). |
+| [`teacher_gemini.py`](teacher_gemini.py) | Gemini through CrewAI (GEMINI_API_KEY; uv add "crewai[google-genai]"). |
 | [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through CrewAI (ollama pull qwen3). |
 | [`teacher_openai.py`](teacher_openai.py) | OpenAI through CrewAI (OPENAI_API_KEY). |
 
 ## Run
 
 ```bash
-pip install "decisionsmith[crewai,laya]"
-pip install crewai[anthropic,google-genai,azure-ai-inference]
+uv add "decisionsmith[crewai,laya]"
+uv add crewai[anthropic,google-genai,azure-ai-inference]
 export AZURE_API_KEY=...
 export AZURE_ENDPOINT=...
-python examples/04-integrations/crewai/in_framework_guardrail.py
-python examples/04-integrations/crewai/in_framework_tool.py
-python examples/04-integrations/crewai/teacher_anthropic.py
-python examples/04-integrations/crewai/teacher_azure.py
-python examples/04-integrations/crewai/teacher_gemini.py
-python examples/04-integrations/crewai/teacher_ollama.py
-python examples/04-integrations/crewai/teacher_openai.py
+uv run python examples/04-integrations/crewai/in_framework_guardrail.py
+uv run python examples/04-integrations/crewai/in_framework_tool.py
+uv run python examples/04-integrations/crewai/teacher_anthropic.py
+uv run python examples/04-integrations/crewai/teacher_azure.py
+uv run python examples/04-integrations/crewai/teacher_gemini.py
+uv run python examples/04-integrations/crewai/teacher_ollama.py
+uv run python examples/04-integrations/crewai/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

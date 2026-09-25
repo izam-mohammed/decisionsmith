@@ -1,4 +1,4 @@
-"""A local Ollama model through Haystack (ollama pull qwen3; pip install ollama-haystack)."""
+"""A local Ollama model through Haystack (ollama pull qwen3; uv add ollama-haystack)."""
 
 from _schema import TEXTS, Ticket
 from haystack_integrations.components.generators.ollama import OllamaChatGenerator

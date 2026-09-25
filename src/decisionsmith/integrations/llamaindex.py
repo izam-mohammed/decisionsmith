@@ -1,4 +1,4 @@
-"""LlamaIndex (`pip install "decisionsmith[llamaindex]"`): any LlamaIndex LLM as the teacher, a relevance filter,
+"""LlamaIndex (`uv add "decisionsmith[llamaindex]"`): any LlamaIndex LLM as the teacher, a relevance filter,
 a selector and a `FunctionTool`.
 
 ds.harness(Ticket, teacher=OpenAI(model="gpt-5-mini"))            # detected automatically

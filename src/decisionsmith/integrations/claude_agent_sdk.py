@@ -1,4 +1,4 @@
-"""Claude Agent SDK (`pip install "decisionsmith[claude-agent-sdk]"`): `PreToolUse` / `PostToolUse` hooks that let a
+"""Claude Agent SDK (`uv add "decisionsmith[claude-agent-sdk]"`): `PreToolUse` / `PostToolUse` hooks that let a
 decision deny a tool call or flag its output.
 
 bash = hook(ds.harness(Risky, ...), field="is_destructive", block=[True], matcher="Bash")

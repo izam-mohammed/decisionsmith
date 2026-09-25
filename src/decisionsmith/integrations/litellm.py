@@ -1,4 +1,4 @@
-"""LiteLLM (`pip install "decisionsmith[litellm]"`): any LiteLLM model as the teacher, a Proxy guardrail, Router tiers.
+"""LiteLLM (`uv add "decisionsmith[litellm]"`): any LiteLLM model as the teacher, a Proxy guardrail, Router tiers.
 
 ds.harness(Ticket, teacher="litellm/bedrock/anthropic.claude-haiku-4-5", student="laya")
 Guard = guardrail(ds.harness(Injection, ...), field="is_attack", block=[True])   # proxy: guardrail: guard.Guard

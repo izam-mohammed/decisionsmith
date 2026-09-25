@@ -3,4 +3,4 @@ summary: A plugin with a kernel function backed by your model, a function invoca
 needs: [semantic-kernel, laya]
 imports: [semantic_kernel]
 keys: [AZURE_OPENAI_API_KEY]
-pip: ["semantic-kernel[anthropic,ollama]"]
+packages: ["semantic-kernel[anthropic,ollama]"]

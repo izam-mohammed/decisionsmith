@@ -39,13 +39,13 @@ for text in TEXTS[:3]:
 ## Run
 
 ```bash
-pip install "decisionsmith[openai,laya]"
-python examples/04-integrations/openai/in_framework_wrap.py
-python examples/04-integrations/openai/teacher_anthropic.py
-python examples/04-integrations/openai/teacher_gemini.py
-python examples/04-integrations/openai/teacher_groq.py
-python examples/04-integrations/openai/teacher_ollama.py
-python examples/04-integrations/openai/teacher_openai.py
+uv add "decisionsmith[openai,laya]"
+uv run python examples/04-integrations/openai/in_framework_wrap.py
+uv run python examples/04-integrations/openai/teacher_anthropic.py
+uv run python examples/04-integrations/openai/teacher_gemini.py
+uv run python examples/04-integrations/openai/teacher_groq.py
+uv run python examples/04-integrations/openai/teacher_ollama.py
+uv run python examples/04-integrations/openai/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

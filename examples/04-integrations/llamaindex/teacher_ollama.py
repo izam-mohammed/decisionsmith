@@ -1,4 +1,4 @@
-"""A local Ollama model through LlamaIndex (ollama pull qwen3; pip install llama-index-llms-ollama)."""
+"""A local Ollama model through LlamaIndex (ollama pull qwen3; uv add llama-index-llms-ollama)."""
 
 from _schema import TEXTS, Ticket
 from llama_index.llms.ollama import Ollama

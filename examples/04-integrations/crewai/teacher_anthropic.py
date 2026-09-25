@@ -1,4 +1,4 @@
-"""Claude through CrewAI (ANTHROPIC_API_KEY; pip install "crewai[anthropic]")."""
+"""Claude through CrewAI (ANTHROPIC_API_KEY; uv add "crewai[anthropic]")."""
 
 from _schema import TEXTS, Ticket
 from crewai import LLM

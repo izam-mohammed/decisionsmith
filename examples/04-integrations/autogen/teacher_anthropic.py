@@ -1,4 +1,4 @@
-"""Claude through AutoGen (ANTHROPIC_API_KEY; pip install "autogen-ext[anthropic]")."""
+"""Claude through AutoGen (ANTHROPIC_API_KEY; uv add "autogen-ext[anthropic]")."""
 
 from _schema import TEXTS, Ticket
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient

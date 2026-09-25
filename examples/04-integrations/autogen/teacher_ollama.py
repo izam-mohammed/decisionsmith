@@ -1,4 +1,4 @@
-"""A local Ollama model through AutoGen (ollama pull qwen3; pip install "autogen-ext[ollama]")."""
+"""A local Ollama model through AutoGen (ollama pull qwen3; uv add "autogen-ext[ollama]")."""
 
 from _schema import TEXTS, Ticket
 from autogen_ext.models.ollama import OllamaChatCompletionClient

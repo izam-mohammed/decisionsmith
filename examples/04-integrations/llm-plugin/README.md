@@ -31,9 +31,9 @@ for text in ["I was charged twice this month", "The app crashes every time I log
 ## Run
 
 ```bash
-pip install "decisionsmith[llm-plugin,laya]"
-python examples/04-integrations/llm-plugin/in_framework_command.py
-python examples/04-integrations/llm-plugin/teacher_openai.py
+uv add "decisionsmith[llm-plugin,laya]"
+uv run python examples/04-integrations/llm-plugin/in_framework_command.py
+uv run python examples/04-integrations/llm-plugin/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

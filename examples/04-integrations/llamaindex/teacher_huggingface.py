@@ -1,4 +1,4 @@
-"""Hugging Face Inference Providers through LlamaIndex (HF_TOKEN; pip install llama-index-llms-huggingface-api)."""
+"""Hugging Face Inference Providers through LlamaIndex (HF_TOKEN; uv add llama-index-llms-huggingface-api)."""
 
 import os
 

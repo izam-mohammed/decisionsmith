@@ -2,4 +2,4 @@ title: Agno
 summary: A decision as an Agno tool, and any Agno model (OpenAI, Claude, Gemini, Ollama) as the teacher.
 needs: [agno, laya]
 imports: [agno]
-pip: [openai, anthropic, google-genai, ollama]
+packages: [openai, anthropic, google-genai, ollama]

@@ -1,4 +1,4 @@
-"""Outlines (`pip install "decisionsmith[outlines]"`): any Outlines model as a teacher, with structured generation.
+"""Outlines (`uv add "decisionsmith[outlines]"`): any Outlines model as a teacher, with structured generation.
 
 Outlines constrains the model to the answer schema (enum options and booleans), so local models always reply with
 valid JSON. Transformers, llama.cpp, MLX, vLLM, Ollama, SGLang, TGI and API models all work the same way.

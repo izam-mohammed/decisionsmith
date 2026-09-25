@@ -3,4 +3,4 @@ summary: A CrewAI LLM as the teacher (OpenAI, Claude, Gemini, Ollama, Azure), a 
 needs: [crewai, laya]
 imports: [crewai]
 keys: [AZURE_API_KEY, AZURE_ENDPOINT]
-pip: ["crewai[anthropic,google-genai,azure-ai-inference]"]
+packages: ["crewai[anthropic,google-genai,azure-ai-inference]"]

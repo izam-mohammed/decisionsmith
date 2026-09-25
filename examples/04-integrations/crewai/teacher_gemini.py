@@ -1,4 +1,4 @@
-"""Gemini through CrewAI (GEMINI_API_KEY; pip install "crewai[google-genai]")."""
+"""Gemini through CrewAI (GEMINI_API_KEY; uv add "crewai[google-genai]")."""
 
 from _schema import TEXTS, Ticket
 from crewai import LLM

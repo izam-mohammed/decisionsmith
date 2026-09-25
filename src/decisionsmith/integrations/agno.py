@@ -1,4 +1,4 @@
-"""Agno (`pip install "decisionsmith[agno]"`): any Agno model as the teacher, and a decision as an Agno tool.
+"""Agno (`uv add "decisionsmith[agno]"`): any Agno model as the teacher, and a decision as an Agno tool.
 
 ds.harness(Ticket, teacher=OpenAIChat(id="gpt-5-mini"))                 # detected automatically
 Agent(model=OpenAIChat(id="gpt-5-mini"), tools=[tool(h, name="route_ticket")])

@@ -1,4 +1,4 @@
-"""Claude through Agno (ANTHROPIC_API_KEY; pip install anthropic)."""
+"""Claude through Agno (ANTHROPIC_API_KEY; uv add anthropic)."""
 
 from _schema import TEXTS, Ticket
 from agno.models.anthropic import Claude

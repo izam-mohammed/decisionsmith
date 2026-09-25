@@ -1,4 +1,4 @@
-"""Haystack (`pip install "decisionsmith[haystack]"`): any Haystack chat generator as the teacher, and decisions as
+"""Haystack (`uv add "decisionsmith[haystack]"`): any Haystack chat generator as the teacher, and decisions as
 pipeline components: a router with one output per value, and a document filter.
 
 ds.harness(Ticket, teacher=OpenAIChatGenerator(model="gpt-5-mini"))  # detected automatically

@@ -3,8 +3,8 @@
     python scripts/gen_gallery.py           # write
     python scripts/gen_gallery.py --check   # exit 1 if anything is out of date (CI)
 
-meta.yaml keys: title, summary, needs (extras), keys (env vars), imports (modules the test needs),
-offline (false = the test skips it), why (what it needs instead), expect (text the output must contain).
+meta.yaml keys: title, summary, needs (extras), keys (env vars), packages (more to `uv add`), imports (modules the
+test needs), offline (false = the test skips it), why (what it needs instead), expect (text the output must contain).
 """
 
 from __future__ import annotations
@@ -50,10 +50,10 @@ def readme(folder: Path, meta: dict) -> str:
         lines.append("")
     lines += ["## Run", "", "```bash"]
     needs = meta.get("needs") or []
-    lines.append('pip install "decisionsmith%s"' % ("[%s]" % ",".join(needs) if needs else ""))
-    lines += ["pip install %s" % " ".join(meta["pip"])] if meta.get("pip") else []
+    lines.append('uv add "decisionsmith%s"' % ("[%s]" % ",".join(needs) if needs else ""))
+    lines += ["uv add %s" % " ".join(meta["packages"])] if meta.get("packages") else []
     lines += ["export %s=..." % k for k in meta.get("keys") or []]
-    lines += ["python %s/%s" % (rel, p.name) for p in files]
+    lines += ["uv run python %s/%s" % (rel, p.name) for p in files]
     lines += ["```", ""]
     if meta.get("offline") is False:
         lines += ["Needs %s to run for real." % meta.get("why", "outside resources"), ""]

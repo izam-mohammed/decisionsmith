@@ -1,4 +1,4 @@
-"""Gemini through Agno (GOOGLE_API_KEY; pip install google-genai)."""
+"""Gemini through Agno (GOOGLE_API_KEY; uv add google-genai)."""
 
 from _schema import TEXTS, Ticket
 from agno.models.google import Gemini

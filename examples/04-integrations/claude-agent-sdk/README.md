@@ -40,8 +40,8 @@ asyncio.run(main())
 ## Run
 
 ```bash
-pip install "decisionsmith[claude-agent-sdk,laya,anthropic]"
-python examples/04-integrations/claude-agent-sdk/in_framework_hooks.py
+uv add "decisionsmith[claude-agent-sdk,laya,anthropic]"
+uv run python examples/04-integrations/claude-agent-sdk/in_framework_hooks.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

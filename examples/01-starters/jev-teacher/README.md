@@ -34,9 +34,9 @@ print(h.status())
 ## Run
 
 ```bash
-pip install "decisionsmith[laya]"
+uv add "decisionsmith[laya]"
 export TYPESAFE_API_KEY=...
-python examples/01-starters/jev-teacher/main.py
+uv run python examples/01-starters/jev-teacher/main.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

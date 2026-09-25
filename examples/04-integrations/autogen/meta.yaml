@@ -3,4 +3,4 @@ summary: A decision as an AutoGen FunctionTool, a termination condition that sto
 needs: [autogen, laya]
 imports: [autogen_agentchat, autogen_ext.models.openai]
 keys: [AZURE_OPENAI_API_KEY]
-pip: ["autogen-agentchat", "autogen-ext[openai,anthropic,ollama]"]
+packages: ["autogen-agentchat", "autogen-ext[openai,anthropic,ollama]"]

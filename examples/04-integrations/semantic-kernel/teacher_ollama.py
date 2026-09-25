@@ -1,4 +1,4 @@
-"""A local Ollama model through Semantic Kernel (ollama pull qwen3; pip install "semantic-kernel[ollama]")."""
+"""A local Ollama model through Semantic Kernel (ollama pull qwen3; uv add "semantic-kernel[ollama]")."""
 
 from _schema import TEXTS, Ticket
 from semantic_kernel.connectors.ai.ollama import OllamaChatCompletion

@@ -42,25 +42,25 @@ for doc in kept:
 |---|---|
 | [`in_framework_document_filter.py`](in_framework_document_filter.py) | A RAG relevance filter: retrieved documents the model marks off-topic never reach the generator. |
 | [`in_framework_router.py`](in_framework_router.py) | A pipeline router: each ticket goes to its team's branch; the harness decides, no LLM call per ticket once the |
-| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through Haystack (ANTHROPIC_API_KEY; pip install anthropic-haystack). |
-| [`teacher_google_ai.py`](teacher_google_ai.py) | Gemini through Haystack's Google GenAI generator (GEMINI_API_KEY or GOOGLE_API_KEY; pip install |
-| [`teacher_huggingface.py`](teacher_huggingface.py) | Hugging Face Inference Providers through Haystack (HF_TOKEN; pip install huggingface-api-haystack). |
-| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through Haystack (ollama pull qwen3; pip install ollama-haystack). |
+| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through Haystack (ANTHROPIC_API_KEY; uv add anthropic-haystack). |
+| [`teacher_google_ai.py`](teacher_google_ai.py) | Gemini through Haystack's Google GenAI generator (GEMINI_API_KEY or GOOGLE_API_KEY; uv add |
+| [`teacher_huggingface.py`](teacher_huggingface.py) | Hugging Face Inference Providers through Haystack (HF_TOKEN; uv add huggingface-api-haystack). |
+| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through Haystack (ollama pull qwen3; uv add ollama-haystack). |
 | [`teacher_openai.py`](teacher_openai.py) | OpenAI through Haystack's OpenAIChatGenerator (OPENAI_API_KEY). |
 
 ## Run
 
 ```bash
-pip install "decisionsmith[haystack,laya]"
-pip install anthropic-haystack google-genai-haystack ollama-haystack huggingface-api-haystack
+uv add "decisionsmith[haystack,laya]"
+uv add anthropic-haystack google-genai-haystack ollama-haystack huggingface-api-haystack
 export HF_TOKEN=...
-python examples/04-integrations/haystack/in_framework_document_filter.py
-python examples/04-integrations/haystack/in_framework_router.py
-python examples/04-integrations/haystack/teacher_anthropic.py
-python examples/04-integrations/haystack/teacher_google_ai.py
-python examples/04-integrations/haystack/teacher_huggingface.py
-python examples/04-integrations/haystack/teacher_ollama.py
-python examples/04-integrations/haystack/teacher_openai.py
+uv run python examples/04-integrations/haystack/in_framework_document_filter.py
+uv run python examples/04-integrations/haystack/in_framework_router.py
+uv run python examples/04-integrations/haystack/teacher_anthropic.py
+uv run python examples/04-integrations/haystack/teacher_google_ai.py
+uv run python examples/04-integrations/haystack/teacher_huggingface.py
+uv run python examples/04-integrations/haystack/teacher_ollama.py
+uv run python examples/04-integrations/haystack/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

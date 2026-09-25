@@ -236,7 +236,7 @@ def _doctor(args: argparse.Namespace) -> int:
         try:
             checks.append({"check": pkg, "ok": True, "detail": version(pkg)})
         except PackageNotFoundError:
-            fix = "pip install 'decisionsmith[%s]'" % extra if extra else ""
+            fix = "uv add 'decisionsmith[%s]'" % extra if extra else ""
             checks.append({"check": pkg, "ok": not extra, "detail": "not installed", "fix": fix})
     try:
         from .training.train import device

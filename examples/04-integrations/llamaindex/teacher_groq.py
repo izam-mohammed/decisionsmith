@@ -1,4 +1,4 @@
-"""Groq through LlamaIndex (GROQ_API_KEY; pip install llama-index-llms-groq)."""
+"""Groq through LlamaIndex (GROQ_API_KEY; uv add llama-index-llms-groq)."""
 
 from _schema import TEXTS, Ticket
 from llama_index.llms.groq import Groq

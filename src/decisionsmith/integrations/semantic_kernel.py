@@ -1,4 +1,4 @@
-"""Semantic Kernel (`pip install "decisionsmith[semantic-kernel]"`): any chat completion service as the teacher,
+"""Semantic Kernel (`uv add "decisionsmith[semantic-kernel]"`): any chat completion service as the teacher,
 a plugin with a `@kernel_function`, and a function invocation filter that blocks by decision.
 
 ds.harness(Ticket, teacher=OpenAIChatCompletion(ai_model_id="gpt-5-mini"))   # detected automatically

@@ -1,4 +1,4 @@
-"""Claude through Semantic Kernel (ANTHROPIC_API_KEY; pip install "semantic-kernel[anthropic]")."""
+"""Claude through Semantic Kernel (ANTHROPIC_API_KEY; uv add "semantic-kernel[anthropic]")."""
 
 from _schema import TEXTS, Ticket
 from semantic_kernel.connectors.ai.anthropic import AnthropicChatCompletion

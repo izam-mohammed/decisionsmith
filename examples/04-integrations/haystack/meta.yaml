@@ -3,4 +3,4 @@ summary: Any Haystack chat generator as the teacher (OpenAI, Claude, Gemini, Oll
 needs: [haystack, laya]
 imports: [haystack]
 keys: [HF_TOKEN]
-pip: [anthropic-haystack, google-genai-haystack, ollama-haystack, huggingface-api-haystack]
+packages: [anthropic-haystack, google-genai-haystack, ollama-haystack, huggingface-api-haystack]

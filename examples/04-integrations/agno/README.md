@@ -31,21 +31,21 @@ for text in TEXTS[:3]:
 | file | what it shows |
 |---|---|
 | [`in_framework_tool.py`](in_framework_tool.py) | An Agno agent with a `route_ticket` tool: the agent calls it and the harness answers (OPENAI_API_KEY). |
-| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through Agno (ANTHROPIC_API_KEY; pip install anthropic). |
-| [`teacher_gemini.py`](teacher_gemini.py) | Gemini through Agno (GOOGLE_API_KEY; pip install google-genai). |
-| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through Agno (ollama pull qwen3; pip install ollama). |
+| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through Agno (ANTHROPIC_API_KEY; uv add anthropic). |
+| [`teacher_gemini.py`](teacher_gemini.py) | Gemini through Agno (GOOGLE_API_KEY; uv add google-genai). |
+| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through Agno (ollama pull qwen3; uv add ollama). |
 | [`teacher_openai.py`](teacher_openai.py) | OpenAI through Agno (OPENAI_API_KEY). |
 
 ## Run
 
 ```bash
-pip install "decisionsmith[agno,laya]"
-pip install openai anthropic google-genai ollama
-python examples/04-integrations/agno/in_framework_tool.py
-python examples/04-integrations/agno/teacher_anthropic.py
-python examples/04-integrations/agno/teacher_gemini.py
-python examples/04-integrations/agno/teacher_ollama.py
-python examples/04-integrations/agno/teacher_openai.py
+uv add "decisionsmith[agno,laya]"
+uv add openai anthropic google-genai ollama
+uv run python examples/04-integrations/agno/in_framework_tool.py
+uv run python examples/04-integrations/agno/teacher_anthropic.py
+uv run python examples/04-integrations/agno/teacher_gemini.py
+uv run python examples/04-integrations/agno/teacher_ollama.py
+uv run python examples/04-integrations/agno/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

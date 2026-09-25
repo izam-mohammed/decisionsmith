@@ -1,4 +1,4 @@
-"""LangGraph (`pip install "decisionsmith[langgraph]"`): route conditional edges on a decision, and a guard node.
+"""LangGraph (`uv add "decisionsmith[langgraph]"`): route conditional edges on a decision, and a guard node.
 
 graph.add_conditional_edges("intake", route_on(h, "team"), {"billing": "billing", "technical": "tech", ...})
 graph.add_node("guard", guard_node(ds.harness(Injection, ...), "is_attack", block=[True]))   # sets state["blocked"]

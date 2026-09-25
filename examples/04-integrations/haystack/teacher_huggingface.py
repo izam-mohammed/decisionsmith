@@ -1,4 +1,4 @@
-"""Hugging Face Inference Providers through Haystack (HF_TOKEN; pip install huggingface-api-haystack)."""
+"""Hugging Face Inference Providers through Haystack (HF_TOKEN; uv add huggingface-api-haystack)."""
 
 from _schema import TEXTS, Ticket
 from haystack_integrations.components.generators.huggingface_api import HuggingFaceAPIChatGenerator

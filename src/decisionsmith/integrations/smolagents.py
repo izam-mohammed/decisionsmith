@@ -1,4 +1,4 @@
-"""smolagents (`pip install "decisionsmith[smolagents]"`): any smolagents model as the teacher, and a `Tool`.
+"""smolagents (`uv add "decisionsmith[smolagents]"`): any smolagents model as the teacher, and a `Tool`.
 
 ds.harness(Ticket, teacher=OpenAIServerModel(model_id="gpt-5-mini"))   # detected automatically
 CodeAgent(tools=[tool(h, "route_ticket")], model=model)                # the agent asks your model

@@ -1,4 +1,4 @@
-"""Amazon Nova on Bedrock through LlamaIndex (AWS credentials; pip install llama-index-llms-bedrock-converse)."""
+"""Amazon Nova on Bedrock through LlamaIndex (AWS credentials; uv add llama-index-llms-bedrock-converse)."""
 
 from _schema import TEXTS, Ticket
 from llama_index.llms.bedrock_converse import BedrockConverse

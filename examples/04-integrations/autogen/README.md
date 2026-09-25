@@ -44,23 +44,23 @@ asyncio.run(main())
 |---|---|
 | [`in_framework_stop_on.py`](in_framework_stop_on.py) | A team that stops as soon as an agent's message leaks private data: the harness checks each message from the |
 | [`in_framework_tool.py`](in_framework_tool.py) | An AssistantAgent with a `route_ticket` FunctionTool: the agent calls it and the harness answers |
-| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through AutoGen (ANTHROPIC_API_KEY; pip install "autogen-ext[anthropic]"). |
+| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through AutoGen (ANTHROPIC_API_KEY; uv add "autogen-ext[anthropic]"). |
 | [`teacher_azure_openai.py`](teacher_azure_openai.py) | Azure OpenAI through AutoGen (AZURE_OPENAI_API_KEY). |
-| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through AutoGen (ollama pull qwen3; pip install "autogen-ext[ollama]"). |
+| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through AutoGen (ollama pull qwen3; uv add "autogen-ext[ollama]"). |
 | [`teacher_openai.py`](teacher_openai.py) | OpenAI through AutoGen (OPENAI_API_KEY). |
 
 ## Run
 
 ```bash
-pip install "decisionsmith[autogen,laya]"
-pip install autogen-agentchat autogen-ext[openai,anthropic,ollama]
+uv add "decisionsmith[autogen,laya]"
+uv add autogen-agentchat autogen-ext[openai,anthropic,ollama]
 export AZURE_OPENAI_API_KEY=...
-python examples/04-integrations/autogen/in_framework_stop_on.py
-python examples/04-integrations/autogen/in_framework_tool.py
-python examples/04-integrations/autogen/teacher_anthropic.py
-python examples/04-integrations/autogen/teacher_azure_openai.py
-python examples/04-integrations/autogen/teacher_ollama.py
-python examples/04-integrations/autogen/teacher_openai.py
+uv run python examples/04-integrations/autogen/in_framework_stop_on.py
+uv run python examples/04-integrations/autogen/in_framework_tool.py
+uv run python examples/04-integrations/autogen/teacher_anthropic.py
+uv run python examples/04-integrations/autogen/teacher_azure_openai.py
+uv run python examples/04-integrations/autogen/teacher_ollama.py
+uv run python examples/04-integrations/autogen/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

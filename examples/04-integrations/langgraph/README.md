@@ -48,9 +48,9 @@ asyncio.run(main())
 ## Run
 
 ```bash
-pip install "decisionsmith[langgraph,laya,anthropic]"
-python examples/04-integrations/langgraph/in_framework_guard.py
-python examples/04-integrations/langgraph/in_framework_router.py
+uv add "decisionsmith[langgraph,laya,anthropic]"
+uv run python examples/04-integrations/langgraph/in_framework_guard.py
+uv run python examples/04-integrations/langgraph/in_framework_router.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

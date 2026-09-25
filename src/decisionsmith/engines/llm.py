@@ -69,7 +69,7 @@ def resolve(model: str, url: str | None) -> tuple[str, str, str | None, str | No
 class LLMEngine:
     """Any LLM as a teacher (or engine). No LLM library needed.
 
-        ds.LLM("claude-haiku-4-5")                     # Claude: pip install 'decisionsmith[anthropic]'
+        ds.LLM("claude-haiku-4-5")                     # Claude: uv add 'decisionsmith[anthropic]'
         ds.LLM("gpt-5-mini") · ds.LLM("gemini-2.5-flash") · ds.LLM("groq/llama-3.3-70b-versatile")
         ds.LLM("ollama/qwen3")                                             # local, no key
         ds.LLM("my-model", url="http://localhost:8000/v1", api_key="...")  # any OpenAI-compatible server

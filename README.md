@@ -4,7 +4,7 @@
 Start with an LLM. End with a fast decision model you trained. One line in between.
 
 ```bash
-pip install "decisionsmith[all]"      # or: uv add "decisionsmith[all]"
+uv add "decisionsmith[all]"
 ```
 
 ```python

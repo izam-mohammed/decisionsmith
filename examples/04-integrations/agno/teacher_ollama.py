@@ -1,4 +1,4 @@
-"""A local Ollama model through Agno (ollama pull qwen3; pip install ollama)."""
+"""A local Ollama model through Agno (ollama pull qwen3; uv add ollama)."""
 
 from _schema import TEXTS, Ticket
 from agno.models.ollama import Ollama

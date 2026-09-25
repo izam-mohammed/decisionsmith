@@ -3,4 +3,4 @@ summary: Any LangChain chat model as the teacher (OpenAI, Claude, Gemini, Vertex
 needs: [langchain, laya]
 imports: [langchain_core, langchain_openai, langchain_anthropic, langchain_google_genai, langchain_aws, langchain_mistralai, langchain_groq, langchain_ollama, langchain_huggingface, langchain_fireworks, langchain_together]
 keys: [AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, GOOGLE_CLOUD_PROJECT, HF_TOKEN]
-pip: [langchain-openai, langchain-anthropic, langchain-google-genai, langchain-aws, langchain-mistralai, langchain-groq, langchain-ollama, langchain-huggingface, langchain-fireworks, langchain-together]
+packages: [langchain-openai, langchain-anthropic, langchain-google-genai, langchain-aws, langchain-mistralai, langchain-groq, langchain-ollama, langchain-huggingface, langchain-fireworks, langchain-together]

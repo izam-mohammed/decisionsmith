@@ -1,4 +1,4 @@
-"""Azure OpenAI through LlamaIndex (AZURE_OPENAI_API_KEY; pip install llama-index-llms-azure-openai).
+"""Azure OpenAI through LlamaIndex (AZURE_OPENAI_API_KEY; uv add llama-index-llms-azure-openai).
 
 `engine` is your deployment name; set azure_endpoint to your resource URL.
 """

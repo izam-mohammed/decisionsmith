@@ -34,35 +34,35 @@ for n in keep.postprocess_nodes(retrieved, query_str="How do I get a refund?"):
 | [`in_framework_relevance_filter.py`](in_framework_relevance_filter.py) | A RAG relevance filter: retrieved nodes the model marks off-topic never reach the LLM. |
 | [`in_framework_selector.py`](in_framework_selector.py) | A router selector: the harness picks which query engine answers, instead of an LLM call per query. |
 | [`in_framework_tool.py`](in_framework_tool.py) | A `FunctionTool` for LlamaIndex agents: the agent calls the harness to route a ticket. |
-| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through LlamaIndex (ANTHROPIC_API_KEY; pip install llama-index-llms-anthropic). |
-| [`teacher_azure_openai.py`](teacher_azure_openai.py) | Azure OpenAI through LlamaIndex (AZURE_OPENAI_API_KEY; pip install llama-index-llms-azure-openai). |
-| [`teacher_bedrock.py`](teacher_bedrock.py) | Amazon Nova on Bedrock through LlamaIndex (AWS credentials; pip install llama-index-llms-bedrock-converse). |
-| [`teacher_gemini.py`](teacher_gemini.py) | Gemini through LlamaIndex's Google GenAI LLM (GOOGLE_API_KEY; pip install llama-index-llms-google-genai). |
-| [`teacher_groq.py`](teacher_groq.py) | Groq through LlamaIndex (GROQ_API_KEY; pip install llama-index-llms-groq). |
-| [`teacher_huggingface.py`](teacher_huggingface.py) | Hugging Face Inference Providers through LlamaIndex (HF_TOKEN; pip install llama-index-llms-huggingface-api). |
-| [`teacher_mistral.py`](teacher_mistral.py) | Mistral through LlamaIndex (MISTRAL_API_KEY; pip install llama-index-llms-mistralai). |
-| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through LlamaIndex (ollama pull qwen3; pip install llama-index-llms-ollama). |
+| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through LlamaIndex (ANTHROPIC_API_KEY; uv add llama-index-llms-anthropic). |
+| [`teacher_azure_openai.py`](teacher_azure_openai.py) | Azure OpenAI through LlamaIndex (AZURE_OPENAI_API_KEY; uv add llama-index-llms-azure-openai). |
+| [`teacher_bedrock.py`](teacher_bedrock.py) | Amazon Nova on Bedrock through LlamaIndex (AWS credentials; uv add llama-index-llms-bedrock-converse). |
+| [`teacher_gemini.py`](teacher_gemini.py) | Gemini through LlamaIndex's Google GenAI LLM (GOOGLE_API_KEY; uv add llama-index-llms-google-genai). |
+| [`teacher_groq.py`](teacher_groq.py) | Groq through LlamaIndex (GROQ_API_KEY; uv add llama-index-llms-groq). |
+| [`teacher_huggingface.py`](teacher_huggingface.py) | Hugging Face Inference Providers through LlamaIndex (HF_TOKEN; uv add llama-index-llms-huggingface-api). |
+| [`teacher_mistral.py`](teacher_mistral.py) | Mistral through LlamaIndex (MISTRAL_API_KEY; uv add llama-index-llms-mistralai). |
+| [`teacher_ollama.py`](teacher_ollama.py) | A local Ollama model through LlamaIndex (ollama pull qwen3; uv add llama-index-llms-ollama). |
 | [`teacher_openai.py`](teacher_openai.py) | OpenAI through LlamaIndex (OPENAI_API_KEY). |
 
 ## Run
 
 ```bash
-pip install "decisionsmith[llamaindex,laya]"
-pip install llama-index-llms-openai llama-index-llms-anthropic llama-index-llms-google-genai llama-index-llms-bedrock-converse llama-index-llms-azure-openai llama-index-llms-mistralai llama-index-llms-groq llama-index-llms-ollama llama-index-llms-huggingface-api
+uv add "decisionsmith[llamaindex,laya]"
+uv add llama-index-llms-openai llama-index-llms-anthropic llama-index-llms-google-genai llama-index-llms-bedrock-converse llama-index-llms-azure-openai llama-index-llms-mistralai llama-index-llms-groq llama-index-llms-ollama llama-index-llms-huggingface-api
 export AZURE_OPENAI_API_KEY=...
 export HF_TOKEN=...
-python examples/04-integrations/llamaindex/in_framework_relevance_filter.py
-python examples/04-integrations/llamaindex/in_framework_selector.py
-python examples/04-integrations/llamaindex/in_framework_tool.py
-python examples/04-integrations/llamaindex/teacher_anthropic.py
-python examples/04-integrations/llamaindex/teacher_azure_openai.py
-python examples/04-integrations/llamaindex/teacher_bedrock.py
-python examples/04-integrations/llamaindex/teacher_gemini.py
-python examples/04-integrations/llamaindex/teacher_groq.py
-python examples/04-integrations/llamaindex/teacher_huggingface.py
-python examples/04-integrations/llamaindex/teacher_mistral.py
-python examples/04-integrations/llamaindex/teacher_ollama.py
-python examples/04-integrations/llamaindex/teacher_openai.py
+uv run python examples/04-integrations/llamaindex/in_framework_relevance_filter.py
+uv run python examples/04-integrations/llamaindex/in_framework_selector.py
+uv run python examples/04-integrations/llamaindex/in_framework_tool.py
+uv run python examples/04-integrations/llamaindex/teacher_anthropic.py
+uv run python examples/04-integrations/llamaindex/teacher_azure_openai.py
+uv run python examples/04-integrations/llamaindex/teacher_bedrock.py
+uv run python examples/04-integrations/llamaindex/teacher_gemini.py
+uv run python examples/04-integrations/llamaindex/teacher_groq.py
+uv run python examples/04-integrations/llamaindex/teacher_huggingface.py
+uv run python examples/04-integrations/llamaindex/teacher_mistral.py
+uv run python examples/04-integrations/llamaindex/teacher_ollama.py
+uv run python examples/04-integrations/llamaindex/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

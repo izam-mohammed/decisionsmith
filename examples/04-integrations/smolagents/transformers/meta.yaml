@@ -2,6 +2,6 @@ title: smolagents with local transformers
 summary: A local Hugging Face model loaded by smolagents' TransformersModel as the teacher.
 needs: [smolagents, laya]
 imports: [smolagents, transformers]
-pip: ["smolagents[transformers]"]
+packages: ["smolagents[transformers]"]
 offline: false
 why: the Qwen/Qwen3-0.6B weights (TransformersModel loads them when it is built, so the offline test can't run it)

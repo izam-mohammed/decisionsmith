@@ -49,18 +49,18 @@ except UnexpectedModelBehavior:
 ## Run
 
 ```bash
-pip install "decisionsmith[pydantic-ai,laya]"
-pip install pydantic-ai-slim[openai,anthropic,google,groq,mistral,bedrock]
-python examples/04-integrations/pydantic-ai/in_framework_output_validator.py
-python examples/04-integrations/pydantic-ai/in_framework_router.py
-python examples/04-integrations/pydantic-ai/in_framework_tool.py
-python examples/04-integrations/pydantic-ai/teacher_anthropic.py
-python examples/04-integrations/pydantic-ai/teacher_bedrock.py
-python examples/04-integrations/pydantic-ai/teacher_gemini.py
-python examples/04-integrations/pydantic-ai/teacher_groq.py
-python examples/04-integrations/pydantic-ai/teacher_mistral.py
-python examples/04-integrations/pydantic-ai/teacher_ollama.py
-python examples/04-integrations/pydantic-ai/teacher_openai.py
+uv add "decisionsmith[pydantic-ai,laya]"
+uv add pydantic-ai-slim[openai,anthropic,google,groq,mistral,bedrock]
+uv run python examples/04-integrations/pydantic-ai/in_framework_output_validator.py
+uv run python examples/04-integrations/pydantic-ai/in_framework_router.py
+uv run python examples/04-integrations/pydantic-ai/in_framework_tool.py
+uv run python examples/04-integrations/pydantic-ai/teacher_anthropic.py
+uv run python examples/04-integrations/pydantic-ai/teacher_bedrock.py
+uv run python examples/04-integrations/pydantic-ai/teacher_gemini.py
+uv run python examples/04-integrations/pydantic-ai/teacher_groq.py
+uv run python examples/04-integrations/pydantic-ai/teacher_mistral.py
+uv run python examples/04-integrations/pydantic-ai/teacher_ollama.py
+uv run python examples/04-integrations/pydantic-ai/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

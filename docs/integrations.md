@@ -207,7 +207,7 @@ Laya's `laya-ts` as a student and any LLM SDK as teacher following the same patt
 
 1. Thin: ≤ ~100 lines over the public API.
 2. Native: the framework's own base classes and types.
-3. Opt-in extra: `pip install "decisionsmith[langchain]"`; import path `decisionsmith.integrations.<name>`.
+3. Opt-in extra: `uv add "decisionsmith[langchain]"`; import path `decisionsmith.integrations.<name>`.
 4. Tested with `FakeEngine` against a pinned framework version; one example folder each; ≥ 95% coverage.
 5. New third-party *runtimes* (engines that change answers) pass a local parity check against the reference Laya
    runtime first.

@@ -36,8 +36,8 @@ print(h.adapt())
 ## Run
 
 ```bash
-pip install "decisionsmith[laya,anthropic]"
-python examples/01-starters/quickstart/main.py
+uv add "decisionsmith[laya,anthropic]"
+uv run python examples/01-starters/quickstart/main.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

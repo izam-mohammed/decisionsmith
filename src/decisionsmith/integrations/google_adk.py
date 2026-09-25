@@ -1,4 +1,4 @@
-"""Google ADK (`pip install "decisionsmith[google-adk]"`): a decision as a `FunctionTool`, and a
+"""Google ADK (`uv add "decisionsmith[google-adk]"`): a decision as a `FunctionTool`, and a
 `before_model_callback` guard that answers instead of the model when a request is blocked.
 
 agent = LlmAgent(model="gemini-2.5-flash", tools=[tool(ds.harness(Ticket, ...), name="route_ticket")],

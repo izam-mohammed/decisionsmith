@@ -55,28 +55,28 @@ for doc in keep.compress_documents(retrieved, "I was charged twice, when do I ge
 ## Run
 
 ```bash
-pip install "decisionsmith[langchain,laya]"
-pip install langchain-openai langchain-anthropic langchain-google-genai langchain-aws langchain-mistralai langchain-groq langchain-ollama langchain-huggingface langchain-fireworks langchain-together
+uv add "decisionsmith[langchain,laya]"
+uv add langchain-openai langchain-anthropic langchain-google-genai langchain-aws langchain-mistralai langchain-groq langchain-ollama langchain-huggingface langchain-fireworks langchain-together
 export AZURE_OPENAI_API_KEY=...
 export AZURE_OPENAI_ENDPOINT=...
 export GOOGLE_CLOUD_PROJECT=...
 export HF_TOKEN=...
-python examples/04-integrations/langchain/in_framework_compressor.py
-python examples/04-integrations/langchain/in_framework_output_parser.py
-python examples/04-integrations/langchain/in_framework_runnable.py
-python examples/04-integrations/langchain/in_framework_tool.py
-python examples/04-integrations/langchain/teacher_anthropic.py
-python examples/04-integrations/langchain/teacher_azure_openai.py
-python examples/04-integrations/langchain/teacher_bedrock.py
-python examples/04-integrations/langchain/teacher_fireworks.py
-python examples/04-integrations/langchain/teacher_google_genai.py
-python examples/04-integrations/langchain/teacher_groq.py
-python examples/04-integrations/langchain/teacher_huggingface.py
-python examples/04-integrations/langchain/teacher_mistral.py
-python examples/04-integrations/langchain/teacher_ollama.py
-python examples/04-integrations/langchain/teacher_openai.py
-python examples/04-integrations/langchain/teacher_together.py
-python examples/04-integrations/langchain/teacher_vertex.py
+uv run python examples/04-integrations/langchain/in_framework_compressor.py
+uv run python examples/04-integrations/langchain/in_framework_output_parser.py
+uv run python examples/04-integrations/langchain/in_framework_runnable.py
+uv run python examples/04-integrations/langchain/in_framework_tool.py
+uv run python examples/04-integrations/langchain/teacher_anthropic.py
+uv run python examples/04-integrations/langchain/teacher_azure_openai.py
+uv run python examples/04-integrations/langchain/teacher_bedrock.py
+uv run python examples/04-integrations/langchain/teacher_fireworks.py
+uv run python examples/04-integrations/langchain/teacher_google_genai.py
+uv run python examples/04-integrations/langchain/teacher_groq.py
+uv run python examples/04-integrations/langchain/teacher_huggingface.py
+uv run python examples/04-integrations/langchain/teacher_mistral.py
+uv run python examples/04-integrations/langchain/teacher_ollama.py
+uv run python examples/04-integrations/langchain/teacher_openai.py
+uv run python examples/04-integrations/langchain/teacher_together.py
+uv run python examples/04-integrations/langchain/teacher_vertex.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

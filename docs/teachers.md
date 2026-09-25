@@ -15,7 +15,7 @@ model.train(generate=300, teacher=ds.LLM("my-model", url="http://localhost:8000/
 | string | provider | key (environment) | base URL |
 |---|---|---|---|
 | `gpt-*`, `o1*`, `o3*`, `o4*`, `openai/<model>` | OpenAI | `OPENAI_API_KEY` | `https://api.openai.com/v1` |
-| `claude-*`, `anthropic/<model>` | Anthropic, via the official `anthropic` SDK (`pip install "decisionsmith[anthropic]"`) | `ANTHROPIC_API_KEY` | SDK default |
+| `claude-*`, `anthropic/<model>` | Anthropic, via the official `anthropic` SDK (`uv add "decisionsmith[anthropic]"`) | `ANTHROPIC_API_KEY` | SDK default |
 | `gemini-*`, `gemini/<model>` | Google Gemini (OpenAI-compatible endpoint) | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai` |
 | `groq/<model>` | Groq | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
 | `openrouter/<model>` | OpenRouter | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
@@ -26,7 +26,7 @@ model.train(generate=300, teacher=ds.LLM("my-model", url="http://localhost:8000/
 | `mistral/<model>` | Mistral | `MISTRAL_API_KEY` | `https://api.mistral.ai/v1` |
 | `ollama/<model>` | Ollama on this machine | none | `http://localhost:11434/v1` |
 | `ds.LLM(model, url=..., api_key=...)` | any OpenAI-compatible server (vLLM, LM Studio, llama.cpp server, SGLang, a gateway) | `api_key=` | `url` |
-| `litellm/<any LiteLLM id>` | everything LiteLLM supports (Bedrock, Vertex, Azure, Cohere, ...) (`pip install "decisionsmith[litellm]"`) | the provider's | LiteLLM's |
+| `litellm/<any LiteLLM id>` | everything LiteLLM supports (Bedrock, Vertex, Azure, Cohere, ...) (`uv add "decisionsmith[litellm]"`) | the provider's | LiteLLM's |
 
 Base URLs were checked against each provider's documentation on 25/09/2026.
 

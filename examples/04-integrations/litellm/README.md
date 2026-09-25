@@ -44,7 +44,7 @@ if __name__ == "__main__":
 | [`in_framework_router.py`](in_framework_router.py) | LiteLLM Router tiers: a decision picks the cheap or the strong model group for each request. |
 | [`teacher_anthropic.py`](teacher_anthropic.py) | Claude through LiteLLM (ANTHROPIC_API_KEY). |
 | [`teacher_azure.py`](teacher_azure.py) | Azure OpenAI through LiteLLM (AZURE_API_KEY, AZURE_API_BASE, AZURE_API_VERSION). |
-| [`teacher_bedrock.py`](teacher_bedrock.py) | Amazon Nova on Bedrock through LiteLLM (AWS credentials and AWS_REGION_NAME; pip install boto3). |
+| [`teacher_bedrock.py`](teacher_bedrock.py) | Amazon Nova on Bedrock through LiteLLM (AWS credentials and AWS_REGION_NAME; uv add boto3). |
 | [`teacher_cohere.py`](teacher_cohere.py) | Cohere Command A through LiteLLM (COHERE_API_KEY). |
 | [`teacher_gemini.py`](teacher_gemini.py) | Gemini (Google AI Studio) through LiteLLM (GEMINI_API_KEY). |
 | [`teacher_groq.py`](teacher_groq.py) | Groq through LiteLLM (GROQ_API_KEY). |
@@ -58,21 +58,21 @@ if __name__ == "__main__":
 ## Run
 
 ```bash
-pip install "decisionsmith[litellm,laya]"
-python examples/04-integrations/litellm/in_framework_proxy_guardrail.py
-python examples/04-integrations/litellm/in_framework_router.py
-python examples/04-integrations/litellm/teacher_anthropic.py
-python examples/04-integrations/litellm/teacher_azure.py
-python examples/04-integrations/litellm/teacher_bedrock.py
-python examples/04-integrations/litellm/teacher_cohere.py
-python examples/04-integrations/litellm/teacher_gemini.py
-python examples/04-integrations/litellm/teacher_groq.py
-python examples/04-integrations/litellm/teacher_huggingface.py
-python examples/04-integrations/litellm/teacher_mistral.py
-python examples/04-integrations/litellm/teacher_ollama.py
-python examples/04-integrations/litellm/teacher_openai.py
-python examples/04-integrations/litellm/teacher_openrouter.py
-python examples/04-integrations/litellm/teacher_vertex.py
+uv add "decisionsmith[litellm,laya]"
+uv run python examples/04-integrations/litellm/in_framework_proxy_guardrail.py
+uv run python examples/04-integrations/litellm/in_framework_router.py
+uv run python examples/04-integrations/litellm/teacher_anthropic.py
+uv run python examples/04-integrations/litellm/teacher_azure.py
+uv run python examples/04-integrations/litellm/teacher_bedrock.py
+uv run python examples/04-integrations/litellm/teacher_cohere.py
+uv run python examples/04-integrations/litellm/teacher_gemini.py
+uv run python examples/04-integrations/litellm/teacher_groq.py
+uv run python examples/04-integrations/litellm/teacher_huggingface.py
+uv run python examples/04-integrations/litellm/teacher_mistral.py
+uv run python examples/04-integrations/litellm/teacher_ollama.py
+uv run python examples/04-integrations/litellm/teacher_openai.py
+uv run python examples/04-integrations/litellm/teacher_openrouter.py
+uv run python examples/04-integrations/litellm/teacher_vertex.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

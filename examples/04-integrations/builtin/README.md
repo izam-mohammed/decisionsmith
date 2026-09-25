@@ -3,7 +3,7 @@
 Every provider the built-in client speaks (OpenAI, Claude, Gemini, Groq, OpenRouter, Together, Fireworks, DeepSeek, xAI, Mistral, Ollama, vLLM, LM Studio, any URL) labelling for Laya.
 
 ```python
-"""Claude as the teacher, through the official SDK (ANTHROPIC_API_KEY; pip install "decisionsmith[anthropic]").
+"""Claude as the teacher, through the official SDK (ANTHROPIC_API_KEY; uv add "decisionsmith[anthropic]").
 
 The teacher labels the texts; the rows train Laya (`model.train(rows)`) or go to review first.
 """
@@ -20,7 +20,7 @@ for row in rows:
 
 | file | what it shows |
 |---|---|
-| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude as the teacher, through the official SDK (ANTHROPIC_API_KEY; pip install "decisionsmith[anthropic]"). |
+| [`teacher_anthropic.py`](teacher_anthropic.py) | Claude as the teacher, through the official SDK (ANTHROPIC_API_KEY; uv add "decisionsmith[anthropic]"). |
 | [`teacher_any_openai_compatible_url.py`](teacher_any_openai_compatible_url.py) | Any OpenAI-compatible server as the teacher (llama.cpp, SGLang, a gateway, ...): set LLM_URL and LLM_API_KEY. |
 | [`teacher_deepseek.py`](teacher_deepseek.py) | DeepSeek as the teacher (DEEPSEEK_API_KEY). |
 | [`teacher_fireworks.py`](teacher_fireworks.py) | Fireworks AI as the teacher (FIREWORKS_API_KEY). |
@@ -38,21 +38,21 @@ for row in rows:
 ## Run
 
 ```bash
-pip install "decisionsmith[laya]"
-python examples/04-integrations/builtin/teacher_anthropic.py
-python examples/04-integrations/builtin/teacher_any_openai_compatible_url.py
-python examples/04-integrations/builtin/teacher_deepseek.py
-python examples/04-integrations/builtin/teacher_fireworks.py
-python examples/04-integrations/builtin/teacher_gemini.py
-python examples/04-integrations/builtin/teacher_groq.py
-python examples/04-integrations/builtin/teacher_lm_studio.py
-python examples/04-integrations/builtin/teacher_mistral.py
-python examples/04-integrations/builtin/teacher_ollama.py
-python examples/04-integrations/builtin/teacher_openai.py
-python examples/04-integrations/builtin/teacher_openrouter.py
-python examples/04-integrations/builtin/teacher_together.py
-python examples/04-integrations/builtin/teacher_vllm.py
-python examples/04-integrations/builtin/teacher_xai.py
+uv add "decisionsmith[laya]"
+uv run python examples/04-integrations/builtin/teacher_anthropic.py
+uv run python examples/04-integrations/builtin/teacher_any_openai_compatible_url.py
+uv run python examples/04-integrations/builtin/teacher_deepseek.py
+uv run python examples/04-integrations/builtin/teacher_fireworks.py
+uv run python examples/04-integrations/builtin/teacher_gemini.py
+uv run python examples/04-integrations/builtin/teacher_groq.py
+uv run python examples/04-integrations/builtin/teacher_lm_studio.py
+uv run python examples/04-integrations/builtin/teacher_mistral.py
+uv run python examples/04-integrations/builtin/teacher_ollama.py
+uv run python examples/04-integrations/builtin/teacher_openai.py
+uv run python examples/04-integrations/builtin/teacher_openrouter.py
+uv run python examples/04-integrations/builtin/teacher_together.py
+uv run python examples/04-integrations/builtin/teacher_vllm.py
+uv run python examples/04-integrations/builtin/teacher_xai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

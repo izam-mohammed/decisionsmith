@@ -59,13 +59,13 @@ asyncio.run(main())
 ## Run
 
 ```bash
-pip install "decisionsmith[openai-agents,laya]"
-pip install openai-agents[litellm]
-python examples/04-integrations/openai-agents/in_framework_guardrails.py
-python examples/04-integrations/openai-agents/in_framework_router.py
-python examples/04-integrations/openai-agents/in_framework_tool.py
-python examples/04-integrations/openai-agents/teacher_litellm.py
-python examples/04-integrations/openai-agents/teacher_openai.py
+uv add "decisionsmith[openai-agents,laya]"
+uv add openai-agents[litellm]
+uv run python examples/04-integrations/openai-agents/in_framework_guardrails.py
+uv run python examples/04-integrations/openai-agents/in_framework_router.py
+uv run python examples/04-integrations/openai-agents/in_framework_tool.py
+uv run python examples/04-integrations/openai-agents/teacher_litellm.py
+uv run python examples/04-integrations/openai-agents/teacher_openai.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

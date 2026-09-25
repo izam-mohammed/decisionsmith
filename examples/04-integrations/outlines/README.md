@@ -29,11 +29,11 @@ print(h.status())
 ## Run
 
 ```bash
-pip install "decisionsmith[outlines,laya]"
-pip install ollama
-python examples/04-integrations/outlines/teacher_ollama.py
-python examples/04-integrations/outlines/teacher_openai.py
-python examples/04-integrations/outlines/teacher_vllm.py
+uv add "decisionsmith[outlines,laya]"
+uv add ollama
+uv run python examples/04-integrations/outlines/teacher_ollama.py
+uv run python examples/04-integrations/outlines/teacher_openai.py
+uv run python examples/04-integrations/outlines/teacher_vllm.py
 ```
 
 No keys yet? `DS_OFFLINE=1` swaps every LLM for a local stand-in so you can walk through the flow.

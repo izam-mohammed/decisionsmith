@@ -150,7 +150,7 @@ def server() -> Any:
     try:
         from mcp.server.mcpserver import MCPServer
     except ImportError:
-        raise SystemExit("MCP support is not installed: pip install 'decisionsmith[mcp]'") from None
+        raise SystemExit("MCP support is not installed: uv add 'decisionsmith[mcp]'") from None
     app = MCPServer(
         "decisionsmith",
         instructions="Decisions (classify, route, screen, score) with an LLM or Jev as teacher and Laya as a fast "
