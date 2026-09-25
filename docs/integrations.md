@@ -99,7 +99,7 @@ Later engine work:
 |---|---|
 | Honest LLM probabilities: log-probs over options (OpenAI-compatible, vLLM, llama.cpp, Ollama) → self-consistency → one-hot, weighted by method | better soft labels for `finetune` and a real teacher confidence |
 | Per-field LLM calls when a schema has many fields (`split="field"`) | long schemas, weaker models |
-| laya.cpp, laya-mlx, ONNX as named engines | **only after the local spike + parity gates** in `reference/earlier-specs/14-integration-admission.md`; until then use `systemone:<url>` |
+| laya.cpp, laya-mlx, ONNX as named engines | only after a local parity check against the reference Laya runtime; until then use `systemone:<url>` |
 
 ## 2. LLM gateways, proxies and clients: v0.2
 
@@ -204,7 +204,6 @@ Laya's `laya-ts` as a student and any LLM SDK as teacher following the same patt
 2. Native: the framework's own base classes and types.
 3. Opt-in extra: `pip install "decisionsmith[langchain]"`; import path `decisionsmith.integrations.<name>`.
 4. Tested with `FakeEngine` against a pinned framework version; one example folder each; ≥ 95% coverage.
-5. New third-party *runtimes* (engines that change answers) pass the local spike + parity gates first
-   (`reference/earlier-specs/14-integration-admission.md`).
+5. New third-party *runtimes* (engines that change answers) pass a local parity check against the reference Laya
+   runtime first.
 6. Never send data anywhere the user didn't configure; secrets from the environment only.
-7. Full long-tail catalog (100+ targets) from the earlier plan: `reference/earlier-specs/04-integrations.md`.

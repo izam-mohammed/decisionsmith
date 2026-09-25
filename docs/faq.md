@@ -17,8 +17,8 @@ everything on your machine. The log is a local file.
 **Isn't this just distillation?** Yes: continuous, measured per field, calibrated on held-out data, and never
 switched on without passing its checks.
 
-**Which loss?** Soft cross-entropy by default. The notebook's RL term is kept as `--loss rlcd` for comparison;
-the Kaggle ablation (PLAN step 13) will decide the default with numbers.
+**Which loss?** Soft cross-entropy by default. The Laya notebook's RL term is available as `--loss rlcd`, and
+`--loss proper` adds spherical and ranked-probability scores, for comparison on your data.
 
 **Credits.** Built on [Laya](https://github.com/NandhaKishorM/laya) (Apache-2.0) by Nandakishor M / Convai
 Innovations. Jev and TypeSafe are trademarks of their owners. decisionsmith is not affiliated with either.

@@ -13,7 +13,7 @@ from .schema import argmax, compile_schema
 from .testing import FakeEngine
 from .training import data as data_mod
 
-# Jev list price per 1M input tokens (output free), from reference/earlier-specs/00-context.md, 23/09/2026.
+# Jev list price per 1M input tokens (output free) as published by TypeSafe, recorded 23/09/2026; check current pricing.
 JEV_USD_PER_M_INPUT = 0.042
 
 

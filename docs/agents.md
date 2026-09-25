@@ -109,9 +109,9 @@ ticket = h(text)
 `classifier-finder` (read-only repo scan) · `bench-analyst` (runs bench, explains results) ·
 `label-reviewer` (spots teacher/human disagreements to label).
 
-### Optional hooks (later, opt-in plugin `decisionsmith-guard`)
-From the earlier plan: a `PreToolUse` guard for risky shell commands and a `PostToolUse` injection check,
-powered by a warm local harness daemon, fail-open. See `reference/earlier-specs/05-agents-and-claude-kit.md` § 7.
+### Hooks in your own agents
+For `PreToolUse` / `PostToolUse` guards in agents built on the Claude Agent SDK, use
+`decisionsmith.integrations.claude_agent_sdk.hook(...)` ([integrations.md](integrations.md)).
 
 ## 4. Codex, and any agent without MCP
 

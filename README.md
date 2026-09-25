@@ -104,7 +104,7 @@ harness, bench, status, finetune and label as tools. There's also a Claude Code 
 ## Docs
 
 [Quickstart](docs/quickstart.md) · [Fine-tuning](docs/finetune.md) · [Guide: engines, modes, status, adapt,
-bench](docs/guide.md) · [FAQ](docs/faq.md) · [Integrations](docs/integrations.md) · [Roadmap](docs/roadmap.md)
+bench](docs/guide.md) · [FAQ](docs/faq.md) · [Integrations](docs/integrations.md)
 
 Runnable [examples](examples/) (gallery, every one runs offline) and [notebooks](notebooks/).
 

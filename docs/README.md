@@ -10,5 +10,3 @@
 | [agents.md](agents.md) | MCP server, Claude Code plugin, AGENTS.md |
 | [integrations.md](integrations.md) | what ships per extra, and what is not built yet |
 | [../examples/](../examples/) · [../notebooks/](../notebooks/) | runnable examples (gallery) and notebooks |
-| [roadmap.md](roadmap.md) | everything planned, by version |
-| [../SPEC.md](../SPEC.md) · [../DECISIONS.md](../DECISIONS.md) | exact scope · why |

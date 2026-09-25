@@ -13,3 +13,13 @@ dist/
 runs/
 .DS_Store
 .venvs/
+# planning and marketing notes stay local
+SPEC.md
+PLAN.md
+PLAN-*.md
+DECISIONS.md
+MARKETING.md
+CLAUDE.md
+marketing/
+reference/
+docs/roadmap.md
