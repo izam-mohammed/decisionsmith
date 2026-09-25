@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from ..engines import need, resolve_laya
-from ..files import write_jsonl
+from ..files import folder_name, write_jsonl
 from ..report import Report, metrics
 from ..schema import argmax, compile_schema
 from . import calibrate
@@ -270,8 +270,8 @@ def finetune(
     provenance = {
         "version": __version__,
         "laya_version": getattr(laya, "__version__", None),
-        "base": base,
-        "base_id": base_id,
+        "base": folder_name(base) if os.path.isdir(os.path.expanduser(base)) else base,
+        "base_id": folder_name(base_id) if os.path.isdir(base_id) else base_id,
         "subfolder": sub,
         "data_hash": _data_hash(rows),
         "text_hashes": sorted({data_mod.text_hash(r.text) for r in rows} | _base_hashes(base_id)),

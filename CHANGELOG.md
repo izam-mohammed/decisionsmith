@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Saved model folders hold no local paths.** A base checkpoint that was a local folder is recorded by its folder
+  name only (in `decisionsmith.json`, the copied `rl_agent_config.json`, `train_report.json` and the model card);
+  `laya` and hub ids stay as they are. A failed or interrupted `save` leaves no temporary folder behind, and two saves
+  in one process never share one.
+
 ## 0.1.0 (25/09/2026)
 
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,

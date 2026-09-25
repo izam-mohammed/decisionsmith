@@ -368,3 +368,130 @@ def test_threshold_is_chosen_on_one_half_and_reported_on_the_other():
     assert f["threshold"] == 0.95 and f["coverage"] == 1.0 and f["accuracy_when_sure"] == 1.0
     one = ds.model(LABELS, right).evaluate([(texts[0], truth(texts[0])["team"])])
     assert one.details["fields"]["label"]["threshold_rows"] == 1 == one.details["fields"]["label"]["coverage_rows"]
+
+
+def test_model_card_has_no_absolute_paths(tiny, tmp_path, monkeypatch):
+    m = ds.model(LABELS, str(tiny))
+    outside = m.save(str(tmp_path / "far" / "team"), verbose=False)
+    card = open(os.path.join(outside, "MODEL_CARD.md"), encoding="utf-8").read()
+    assert str(tmp_path) not in card and 'ds.load("team-v1")' in card and str(tiny) not in card
+    monkeypatch.chdir(tmp_path)
+    inside = m.save(os.path.join("models", "team"), verbose=False)
+    card = open(os.path.join(inside, "MODEL_CARD.md"), encoding="utf-8").read()
+    assert 'ds.load("models/team-v1")' in card and str(tmp_path) not in card
+    assert artifact._base_name("laya:multilingual") == "laya:multilingual" and artifact._base_name(None) == "laya"
+    assert artifact._base_name(str(tiny)) == os.path.basename(str(tiny))
+
+
+def test_two_threads_saving_the_same_name_get_different_versions(tiny, tmp_path):
+    import threading
+
+    m = ds.model(LABELS, str(tiny))
+    got, errors = [], []
+    start = threading.Barrier(2)
+
+    def one():
+        start.wait()
+        try:
+            got.append(m.save(str(tmp_path / "team"), verbose=False))
+        except Exception as e:  # pragma: no cover
+            errors.append(e)
+
+    threads = [threading.Thread(target=one) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors and sorted(got) == [str(tmp_path / "team-v1"), str(tmp_path / "team-v2")]
+    assert not [p for p in os.listdir(tmp_path) if ".tmp-" in p]
+    for path in got:
+        assert json.loads(open(os.path.join(path, "decisionsmith.json")).read())["name"] == os.path.basename(path)
+
+
+def test_shown_path_on_another_drive(monkeypatch):
+    def other_drive(paths):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(artifact.os.path, "commonpath", other_drive)
+    assert artifact._shown_path(os.path.join("somewhere", "team-v1")) == "team-v1"
+
+
+def test_portable_base_ids(tmp_path, monkeypatch):
+    p = artifact._portable
+    assert p("laya") == "laya" and p("convaiinnovations/laya") == "convaiinnovations/laya"
+    assert p("laya:multilingual") == "laya:multilingual" and p("laya:%s" % (tmp_path / "base")) == "laya:base"
+    assert p(str(tmp_path / "base")) == "base" and p("./runs/v1") == "v1" and p("~/ckpt") == "ckpt"
+    assert p("C:\\models\\base") == "base" and p("D:/models/base") == "base" and p("..\\up\\base") == "base"
+    assert p(None) is None and p("") == ""
+    (tmp_path / "org" / "repo").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    assert p("org/repo") == "org/repo"
+
+
+def test_public_report_drops_paths_from_provenance_and_title(tmp_path):
+    base = str(tmp_path / "tiny0")
+    report = {
+        "kind": "finetune",
+        "title": "finetune: %s -> %s" % (base, tmp_path / "run"),
+        "path": str(tmp_path / "run"),
+        "details": {"provenance": {"base": base, "base_id": base, "seed": 0}, "train_ids": ["a"]},
+    }
+    out = artifact._public(report)
+    assert out["title"] == "finetune: tiny0 -> run" and out["path"] is None
+    assert out["details"]["provenance"] == {"base": "tiny0", "base_id": "tiny0", "seed": 0}
+    other = artifact._public({"title": "evaluate: laya:%s on 3 rows" % base, "details": {}})
+    assert other["title"] == "evaluate: laya:tiny0 on 3 rows"
+    assert artifact._public({"title": "bench on %s" % base})["title"] == "bench on tiny0"
+    for windows, want in (("C:\\Users\\me\\tiny0", "tiny0"), ("laya:C:\\Users\\me\\tiny0", "laya:tiny0")):
+        assert (
+            artifact._public({"title": "evaluate: %s on 3 rows" % windows})["title"] == "evaluate: %s on 3 rows" % want
+        )
+        assert artifact._portable(windows) == want
+
+
+def test_save_cleans_its_temp_folder_on_any_failure(tiny, tmp_path, monkeypatch):
+    m = ds.model(LABELS, str(tiny))
+    for boom in (OSError("disk full"), KeyboardInterrupt()):
+
+        def fail(*a, error=boom, **k):
+            raise error
+
+        monkeypatch.setattr(artifact, "_card", fail)
+        with pytest.raises(type(boom)):
+            m.save(str(tmp_path / "team"), verbose=False)
+        assert not [p for p in os.listdir(tmp_path) if ".tmp-" in p] and not os.path.exists(tmp_path / "team-v1")
+
+
+def test_saved_folder_has_no_local_base_path_and_still_loads_and_retrains(tiny, tmp_path):
+    first = [(t, truth(t)["team"]) for t in corpus(30)]
+    schema = ds.model(LABELS, "fake").schema.model
+    run = str(tmp_path / "run")
+    ds.finetune(ds.model(LABELS, "fake")._rows(first), schema, base=str(tiny), out=run, epochs=1, verbose=False)
+    written = json.loads(open(os.path.join(run, "rl_agent_config.json")).read())["decisionsmith"]
+    assert written["base"] == written["base_id"] == os.path.basename(str(tiny))
+    m = ds.model(LABELS, run)
+    m.trained = run
+    path = m.save(str(tmp_path / "models" / "team"), verbose=False)
+    meta = json.loads(open(os.path.join(path, "decisionsmith.json")).read())
+    cfg = json.loads(open(os.path.join(path, "rl_agent_config.json")).read())
+    name = os.path.basename(str(tiny))
+    assert meta["base_model"] == name and meta["training"]["base"] == name and meta["training"]["base_id"] == name
+    assert cfg["decisionsmith"]["base"] == name and cfg["decisionsmith"]["base_id"] == name
+    assert cfg["decisionsmith"]["text_hashes"]
+    home = os.path.expanduser("~")
+    for folder, _, files in os.walk(path):
+        for file in files:
+            data = open(os.path.join(folder, file), "rb").read()
+            for secret in (str(tmp_path), str(tiny), home):
+                assert secret.encode() not in data, (file, secret)
+    train_report = json.loads(open(os.path.join(path, "train_report.json")).read())
+    assert train_report["details"]["provenance"]["base"] == name and name in train_report["title"]
+    loaded = ds.load(path)
+    assert loaded.predict("you charged me twice") in LABELS
+    again = str(tmp_path / "again")
+    second = [(t + " more", truth(t)["team"]) for t in corpus(30)]
+    ds.finetune(ds.model(LABELS, "fake")._rows(second), schema, base=path, out=again, epochs=1, verbose=False)
+    hashes = json.loads(open(os.path.join(again, "rl_agent_config.json")).read())["decisionsmith"]["text_hashes"]
+    assert len(hashes) == 60
+    resaved = json.loads(open(os.path.join(loaded.save(verbose=False), "decisionsmith.json")).read())
+    assert resaved["training"]["base"] == name
