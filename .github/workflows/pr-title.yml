@@ -3,9 +3,16 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
+permissions: {}
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   conventional-title:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: title follows Conventional Commits
         env:
