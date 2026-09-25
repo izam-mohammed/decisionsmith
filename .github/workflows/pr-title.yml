@@ -3,16 +3,27 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
+permissions: {}
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   conventional-title:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: title follows Conventional Commits
         env:
           TITLE: ${{ github.event.pull_request.title }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        # Dependabot appends "from X to Y in /dir", so its titles keep the format check but skip the 72-char limit.
         run: |
           re='^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^A-Z].{0,70}[^.]$'
-          if printf '%s' "$TITLE" | grep -Eq "$re" && [ "${#TITLE}" -le 72 ]; then
+          max=72
+          [ "$AUTHOR" = "dependabot[bot]" ] && max=200
+          if printf '%s' "$TITLE" | grep -Eq "$re" && [ "${#TITLE}" -le "$max" ]; then
             echo "ok: $TITLE"
           else
             echo "PR title must be Conventional Commits, e.g. 'feat(integrations): add langgraph route_on' (lowercase summary, no trailing period, <= 72 chars). Got: $TITLE"

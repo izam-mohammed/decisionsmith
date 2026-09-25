@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Repository standards:** security policy, contributing guide, code of conduct, issue forms, Dependabot,
+  OpenSSF Scorecard, and hardened workflows (actions pinned to commit SHAs, read-only tokens). Releases now run the
+  tests, publish to PyPI with PEP 740 attestations and create a GitHub release from this changelog.
+
 ## 0.1.0 (25/09/2026)
 
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,
