@@ -4,8 +4,8 @@ on:
     branches: [main]
   pull_request:
 
-# One job per framework: each `int-<name>` dependency group pins the tested version, and frameworks never share
-# an environment. Runs the integration's tests and its examples offline (DS_OFFLINE=1, tiny Laya checkpoint).
+# One job per framework: each `int-<name>` group in tests/integrations/pyproject.toml pins the tested versions,
+# and frameworks never share an environment. Runs the integration's tests and its examples offline (DS_OFFLINE=1, tiny Laya checkpoint).
 jobs:
   integration:
     strategy:
@@ -20,4 +20,4 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: scripts/integration.sh ${{ matrix.name }} .venv
+      - run: scripts/integration.sh ${{ matrix.name }} .venv-int
