@@ -12,16 +12,23 @@ to use, with no need to define the labels or the class again.
 import decisionsmith as ds
 
 model = ds.model(["billing", "technical", "sales"])
-model.train("tickets.csv")
+report = model.train("tickets.csv")
 model.evaluate("test.csv")
-path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
+if report.switched:  # False: the new weights scored worse on the test split, so the old model was kept
+    path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
 
-m = ds.load(path)  # on the server
-print(m.predict("I was charged twice"))
+    m = ds.load(path)  # on the server
+    print(m.predict("I was charged twice"))
 ```
 
 `tickets.csv` and `test.csv` need a `text` column and a `label` column (for a labels model) or one column per field
 (for a class). `path` is what `save` returns: the name you pass gets a version number.
+
+`model.train()` switches to the new weights unless they score worse on its held-out test split (a tie counts as
+switched), and `report.switched` says which happened. After a training run that kept the old model, `save` still
+writes whatever the model had before: an earlier trained or loaded model, a local checkpoint, and any calibration and
+thresholds from `model.evaluate()` or `h.adapt()`. A model that started from the downloaded base and never switched
+has no local folder, so `save` says training kept the old model instead.
 
 ## Versions
 
@@ -74,9 +81,9 @@ class Ticket(BaseModel):
 
 
 model = ds.model(Ticket)
-model.train("tickets.csv")
-m = ds.load(model.save("models/ticket"), Ticket)
-print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...)
+if model.train("tickets.csv").switched:
+    m = ds.load(model.save("models/ticket"), Ticket)
+    print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...)
 ```
 
 ## Options
@@ -92,6 +99,7 @@ print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...
 | message | fix |
 |---|---|
 | `nothing to save yet` | train first (`model.train(...)`), or save a model you loaded |
+| `nothing to save: training ran but the new model scored worse on its test split` | `report.switched` was False and the model is still the downloaded base; add more (and more varied) rows and train again |
 | `... already exists and saved versions are never overwritten` | use a new version number, or `model.save()` for the next free one |
 | `... is a plain Laya checkpoint` | the folder came from `ds.finetune`; use `ds.model(labels_or_class, path)` |
 | `Ticket does not ask the same questions as the saved model (team.criteria: ...)` | the class differs from the saved one where the message says; load without it, or change it to match |

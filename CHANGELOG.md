@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **`report.switched`** on the report from `model.train()` and `h.finetune()`: True when the new weights are now in
+  use, False when the old ones were kept. When training kept the downloaded base model, so there is nothing on disk
+  to save, `model.save()` now says so (`nothing to save: training ran but the new model scored worse ...`) instead
+  of "train it first".
+
 ## 0.1.0 (25/09/2026)
 
 - **Notebooks** in `notebooks/`: quickstart, golden dataset, harness shadow to cascade, full GPU fine-tune,

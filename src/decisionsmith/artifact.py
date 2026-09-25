@@ -169,6 +169,12 @@ def _source(model: Model) -> str:
     spec = model.engine.spec if isinstance(model.engine, LayaEngine) else None
     if spec and os.path.isdir(os.path.expanduser(spec)):
         return os.path.expanduser(spec)
+    if model._train_ran:
+        raise ValueError(
+            "nothing to save: training ran but the new model scored worse on its test split, so the old one was "
+            "kept, and it has no local folder to save; add more (and more varied) rows and train again "
+            "(check report.switched)"
+        )
     raise ValueError("nothing to save yet: train it first (model.train(...)), or load a saved one (ds.load)")
 
 

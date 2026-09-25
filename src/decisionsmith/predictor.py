@@ -57,6 +57,7 @@ class Model:
         self.engine: Engine = _engine(engine, device)
         self.device = device
         self.trained: str | None = None
+        self._train_ran = False
         self.path: str | None = None
         self.meta: dict[str, Any] = {}
         self.calibration: dict[str, dict[str, Any]] = {}
@@ -244,7 +245,8 @@ class Model:
             model.train(texts, teacher="claude-haiku-4-5")               # only texts: the teacher labels them
             model.train(generate=300, teacher=ds.LLM(...), about="...")  # no data: the teacher writes it
 
-        The model switches to the trained weights unless they came out worse than before.
+        The model switches to the trained weights unless they scored worse than before on the held-out test split
+        (a tie counts as switched); `report.switched` says which happened.
         """
         from .training.finetuning import finetune
 
@@ -275,6 +277,7 @@ class Model:
         tuned = report.details["finetuned"]["all"].get("accuracy") or 0.0
         n = report.details["finetuned"]["all"].get("n", 0)
         better = tuned >= base
+        report.switched, self._train_ran = better, True
         if better:
             self.engine = LayaEngine(out, device=self.device)
             self.report, self.calibration = None, {}
