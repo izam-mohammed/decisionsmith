@@ -1,17 +1,46 @@
 name: integrations
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: integrations-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 # One job per framework: each `int-<name>` group in tests/integrations/pyproject.toml pins the tested versions,
-# and frameworks never share an environment. Runs the integration's tests and its examples offline (DS_OFFLINE=1, tiny Laya checkpoint).
+# and frameworks never share an environment. Runs the integration's tests and its examples offline (DS_OFFLINE=1,
+# tiny Laya checkpoint). A pull request runs only the integrations whose module, test or examples changed, and all
+# of them when a core file changes (scripts/changed_integrations.py); a manual run starts all of them.
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      names: ${{ steps.pick.outputs.names }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - id: pick
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            names=$(git diff --name-only "$BASE"...HEAD | uv run --no-project --python 3.12 python scripts/changed_integrations.py)
+          else
+            names=$(uv run --no-project --python 3.12 python scripts/changed_integrations.py --all < /dev/null)
+          fi
+          echo "names=$names" >> "$GITHUB_OUTPUT"
+          echo "integrations to run: $names"
+
   integration:
+    needs: changes
+    if: needs.changes.outputs.names != '[]'
     strategy:
       fail-fast: false
       matrix:
-        name: [litellm, openai, instructor, portkey, llm-plugin, outlines, marvin, langchain, llamaindex, dspy, crewai, pydantic-ai, haystack, smolagents, autogen, semantic-kernel, langgraph, openai-agents, claude-agent-sdk, google-adk, agno]
+        name: ${{ fromJSON(needs.changes.outputs.names) }}
     runs-on: ubuntu-latest
     env:
       HF_HUB_OFFLINE: "1"

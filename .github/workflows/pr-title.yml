@@ -1,0 +1,20 @@
+name: pr-title
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  conventional-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: title follows Conventional Commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          re='^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^A-Z].{0,70}[^.]$'
+          if printf '%s' "$TITLE" | grep -Eq "$re" && [ "${#TITLE}" -le 72 ]; then
+            echo "ok: $TITLE"
+          else
+            echo "PR title must be Conventional Commits, e.g. 'feat(integrations): add langgraph route_on' (lowercase summary, no trailing period, <= 72 chars). Got: $TITLE"
+            exit 1
+          fi
