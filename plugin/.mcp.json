@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "decisionsmith": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "decisionsmith[all]",
+        "decisionsmith",
+        "mcp"
+      ]
+    }
+  }
+}

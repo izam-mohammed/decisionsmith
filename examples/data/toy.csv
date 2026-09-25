@@ -1,0 +1,301 @@
+id,text,team,wants_refund
+t000,The dashboard shows a 500 error.,technical,false
+t001,Good morning. do you offer discounts for nonprofits. Can you help?,sales,false
+t002,"Hey, the tax on my bill looks wrong. I want my money back.",billing,true
+t003,"Hey, I can't log in since the update. This is urgent.",technical,false
+t004,Good morning. my invoice shows the wrong amount. Please look into it.,billing,false
+t005,There is a fee on my statement I don't recognise. Please refund me.,billing,true
+t006,"Hey, can I get a quote for 50 seats. Can you help?",sales,false
+t007,Good morning. the tax on my bill looks wrong. Refund this now!,billing,true
+t008,Good morning. can I get a quote for 50 seats.,sales,false
+t009,What's the difference between pro and team. Can you help?,sales,false
+t010,Do you offer discounts for nonprofits. This is urgent.,sales,false
+t011,Good morning. what's the difference between pro and team. Any update?,sales,false
+t012,"Hello team, password reset emails never arrive. Any update?",technical,false
+t013,"Hi, exports are stuck at 99 percent. Please look into it.",technical,false
+t014,"Hey, I need a copy of last month's invoice. Refund this now!",billing,true
+t015,"Hi, I can't log in since the update. Give me a refund.",technical,true
+t016,The dashboard shows a 500 error. Any update?,technical,false
+t017,Good morning. do you offer discounts for nonprofits. This is urgent.,sales,false
+t018,"Hey, password reset emails never arrive. This is urgent.",technical,false
+t019,Can we talk about volume pricing.,sales,false
+t020,Uploads time out after a minute.,technical,false
+t021,Good morning. is there an annual pricing option. Please look into it.,sales,false
+t022,"Hey, can we talk about volume pricing. Can you help?",sales,false
+t023,"Hey, I want to upgrade my plan.",sales,false
+t024,The dashboard shows a 500 error. Any update?,technical,false
+t025,"Hey, I need a copy of last month's invoice. Please refund me.",billing,true
+t026,"Hey, uploads time out after a minute. Give me a refund.",technical,true
+t027,"Hey, is there an annual pricing option. Thanks.",sales,false
+t028,"Hey, is there an annual pricing option. Please look into it.",sales,false
+t029,The page is blank in Safari. Thanks.,technical,false
+t030,Why did my card get billed again. Please refund me.,billing,true
+t031,"Hi, the dashboard shows a 500 error.",technical,false
+t032,"Hello team, notifications are delayed by hours. This is urgent.",technical,false
+t033,The tax on my bill looks wrong. Please look into it.,billing,false
+t034,"Hey, notifications are delayed by hours. Any update?",technical,false
+t035,"Hi, update the card on my account please.",billing,false
+t036,"Hello team, the payment failed but money left my account. I want my money back.",billing,true
+t037,How much is the enterprise plan.,sales,false
+t038,Can I get a quote for 50 seats. This is urgent.,sales,false
+t039,Good morning. the app crashes when I open settings. Please refund me.,technical,true
+t040,Good morning. the dashboard shows a 500 error. Can you help?,technical,false
+t041,"Hey, uploads time out after a minute. Give me a refund.",technical,true
+t042,Uploads time out after a minute. Thanks.,technical,false
+t043,"Hello team, I want to upgrade my plan. Please look into it.",sales,false
+t044,Good morning. the dashboard shows a 500 error. Thanks.,technical,false
+t045,Good morning. the dashboard shows a 500 error.,technical,false
+t046,Good morning. I can't log in since the update. Can you help?,technical,false
+t047,Good morning. the dashboard shows a 500 error. Thanks.,technical,false
+t048,"Hi, which plan includes SSO. Can you help?",sales,false
+t049,"Hey, what's the difference between pro and team. Thanks.",sales,false
+t050,Good morning. what's the difference between pro and team. Thanks.,sales,false
+t051,"Hello team, password reset emails never arrive.",technical,false
+t052,"Hello team, sync stopped working on my phone. This is urgent.",technical,false
+t053,Password reset emails never arrive. Can you help?,technical,false
+t054,"Hello team, my invoice shows the wrong amount. Please refund me.",billing,true
+t055,Update the card on my account please. This is urgent.,billing,false
+t056,Password reset emails never arrive.,technical,false
+t057,"Hey, exports are stuck at 99 percent. Thanks.",technical,false
+t058,"Hey, I want to upgrade my plan.",sales,false
+t059,"Hi, the page is blank in Safari.",technical,false
+t060,"Hey, why did my card get billed again. I'd like a refund for this.",billing,true
+t061,Good morning. can I get a quote for 50 seats. This is urgent.,sales,false
+t062,"Hi, password reset emails never arrive. This is urgent.",technical,false
+t063,I was charged twice this month. Please look into it.,billing,false
+t064,"Hi, can I get a quote for 50 seats. Any update?",sales,false
+t065,Good morning. I was charged twice this month. Refund this now!,billing,true
+t066,"Hi, you billed me after I cancelled. Give me a refund.",billing,true
+t067,Good morning. you billed me after I cancelled. Please look into it.,billing,false
+t068,"Hi, do you have a free trial for businesses. This is urgent.",sales,false
+t069,Good morning. can I get a quote for 50 seats. This is urgent.,sales,false
+t070,Update the card on my account please. This is urgent.,billing,false
+t071,Why did my card get billed again. I'd like a refund for this.,billing,true
+t072,Good morning. how much is the enterprise plan. Can you help?,sales,false
+t073,Which plan includes SSO. Any update?,sales,false
+t074,"Hi, how much is the enterprise plan. Thanks.",sales,false
+t075,"Hey, the app crashes when I open settings. This is urgent.",technical,false
+t076,"Hey, how much is the enterprise plan.",sales,false
+t077,"Hello team, notifications are delayed by hours. Thanks.",technical,false
+t078,Good morning. notifications are delayed by hours. Any update?,technical,false
+t079,Good morning. the tax on my bill looks wrong. Can you help?,billing,false
+t080,"Hey, update the card on my account please. I want my money back.",billing,true
+t081,"Hey, password reset emails never arrive. Please refund me.",technical,true
+t082,"Hi, the payment failed but money left my account.",billing,false
+t083,"Hello team, I want to upgrade my plan. Thanks.",sales,false
+t084,"Hey, update the card on my account please. I want my money back.",billing,true
+t085,"Hi, the dashboard shows a 500 error. Thanks.",technical,false
+t086,"Hey, do you have a free trial for businesses. This is urgent.",sales,false
+t087,The page is blank in Safari. Can you help?,technical,false
+t088,"Hello team, I want to upgrade my plan.",sales,false
+t089,Can we talk about volume pricing. Any update?,sales,false
+t090,Good morning. password reset emails never arrive. Can you help?,technical,false
+t091,My invoice shows the wrong amount. Thanks.,billing,false
+t092,"Hello team, I need a copy of last month's invoice. Please refund me.",billing,true
+t093,"Hello team, there is a fee on my statement I don't recognise. Please look into it.",billing,false
+t094,Good morning. the dashboard shows a 500 error. This is urgent.,technical,false
+t095,"Hi, password reset emails never arrive. I want my money back.",technical,true
+t096,I can't log in since the update.,technical,false
+t097,I can't log in since the update. Thanks.,technical,false
+t098,Good morning. I can't log in since the update. Can you help?,technical,false
+t099,Good morning. sync stopped working on my phone.,technical,false
+t100,"Hi, what's the difference between pro and team.",sales,false
+t101,"Hello team, the app crashes when I open settings. Can you help?",technical,false
+t102,"Hey, what's the difference between pro and team. Can you help?",sales,false
+t103,"Hello team, can I get a quote for 50 seats. Can you help?",sales,false
+t104,Good morning. I need a copy of last month's invoice. I want my money back.,billing,true
+t105,"Hey, what's the difference between pro and team. This is urgent.",sales,false
+t106,"Hey, update the card on my account please. Give me a refund.",billing,true
+t107,"Hello team, do you have a free trial for businesses. This is urgent.",sales,false
+t108,"Hello team, what's the difference between pro and team. Thanks.",sales,false
+t109,Why did my card get billed again. Refund this now!,billing,true
+t110,"Hey, I was charged twice this month. Refund this now!",billing,true
+t111,Good morning. I was charged twice this month. Give me a refund.,billing,true
+t112,"Hi, is there an annual pricing option. This is urgent.",sales,false
+t113,"Hey, is there an annual pricing option.",sales,false
+t114,"Hello team, why did my card get billed again. I want my money back.",billing,true
+t115,"Hello team, password reset emails never arrive. This is urgent.",technical,false
+t116,"Hi, I was charged twice this month. Can you help?",billing,false
+t117,The dashboard shows a 500 error. Give me a refund.,technical,true
+t118,"Hi, sync stopped working on my phone. Thanks.",technical,false
+t119,"Hello team, how much is the enterprise plan.",sales,false
+t120,"Hey, why did my card get billed again. I want my money back.",billing,true
+t121,I need a copy of last month's invoice. Please refund me.,billing,true
+t122,Good morning. which plan includes SSO. Thanks.,sales,false
+t123,"Hi, password reset emails never arrive. Any update?",technical,false
+t124,"Hey, the dashboard shows a 500 error. I'd like a refund for this.",technical,true
+t125,Good morning. which plan includes SSO. Thanks.,sales,false
+t126,Good morning. how much is the enterprise plan. Please look into it.,sales,false
+t127,What's the difference between pro and team.,sales,false
+t128,"Hey, why did my card get billed again.",billing,false
+t129,Good morning. notifications are delayed by hours. I want my money back.,technical,true
+t130,"Hello team, what's the difference between pro and team. Any update?",sales,false
+t131,Good morning. update the card on my account please. Please look into it.,billing,false
+t132,Good morning. do you offer discounts for nonprofits. Please look into it.,sales,false
+t133,"Hello team, update the card on my account please. I want my money back.",billing,true
+t134,"Hey, the payment failed but money left my account. Give me a refund.",billing,true
+t135,"Hello team, I can't log in since the update. Please look into it.",technical,false
+t136,"Hello team, the payment failed but money left my account. Please refund me.",billing,true
+t137,Sync stopped working on my phone. Thanks.,technical,false
+t138,The app crashes when I open settings. Please look into it.,technical,false
+t139,"Hey, what's the difference between pro and team. Please look into it.",sales,false
+t140,"Hey, notifications are delayed by hours. Any update?",technical,false
+t141,"Hey, the tax on my bill looks wrong. I want my money back.",billing,true
+t142,"Hey, I need a copy of last month's invoice. I'd like a refund for this.",billing,true
+t143,The page is blank in Safari. Thanks.,technical,false
+t144,Good morning. do you offer discounts for nonprofits. Thanks.,sales,false
+t145,"Hello team, password reset emails never arrive. I'd like a refund for this.",technical,true
+t146,"Hey, you billed me after I cancelled. Give me a refund.",billing,true
+t147,"Hey, why did my card get billed again. Give me a refund.",billing,true
+t148,"Hello team, sync stopped working on my phone. Any update?",technical,false
+t149,Password reset emails never arrive. Refund this now!,technical,true
+t150,"Hi, password reset emails never arrive.",technical,false
+t151,"Hello team, how much is the enterprise plan. Please look into it.",sales,false
+t152,Good morning. password reset emails never arrive. Give me a refund.,technical,true
+t153,You billed me after I cancelled. Can you help?,billing,false
+t154,"Hi, I can't log in since the update. Refund this now!",technical,true
+t155,"Hi, I need a copy of last month's invoice. Refund this now!",billing,true
+t156,"Hey, the page is blank in Safari. Please look into it.",technical,false
+t157,Which plan includes SSO. Thanks.,sales,false
+t158,"Hello team, there is a fee on my statement I don't recognise. Please refund me.",billing,true
+t159,"Hi, the app crashes when I open settings. This is urgent.",technical,false
+t160,"Hello team, update the card on my account please. Refund this now!",billing,true
+t161,"Hello team, sync stopped working on my phone. Thanks.",technical,false
+t162,"Hi, notifications are delayed by hours.",technical,false
+t163,"Hi, can I get a quote for 50 seats.",sales,false
+t164,"Hi, can we talk about volume pricing. This is urgent.",sales,false
+t165,"Hey, password reset emails never arrive. Any update?",technical,false
+t166,"Hi, the tax on my bill looks wrong. I want my money back.",billing,true
+t167,"Hello team, notifications are delayed by hours. Please refund me.",technical,true
+t168,"Hey, exports are stuck at 99 percent. Please look into it.",technical,false
+t169,"Hey, the page is blank in Safari. Thanks.",technical,false
+t170,"Hello team, password reset emails never arrive. Any update?",technical,false
+t171,Good morning. I want to upgrade my plan. Thanks.,sales,false
+t172,"Hello team, what's the difference between pro and team.",sales,false
+t173,"Hey, there is a fee on my statement I don't recognise. Give me a refund.",billing,true
+t174,"Hey, the app crashes when I open settings. Give me a refund.",technical,true
+t175,Can we talk about volume pricing.,sales,false
+t176,"Hi, notifications are delayed by hours. Any update?",technical,false
+t177,The payment failed but money left my account. I'd like a refund for this.,billing,true
+t178,Good morning. can we talk about volume pricing.,sales,false
+t179,Good morning. I was charged twice this month. Thanks.,billing,false
+t180,"Hello team, I need a copy of last month's invoice. Please look into it.",billing,false
+t181,Do you have a free trial for businesses. Please look into it.,sales,false
+t182,"Hi, my invoice shows the wrong amount. I'd like a refund for this.",billing,true
+t183,Sync stopped working on my phone. This is urgent.,technical,false
+t184,"Hello team, the tax on my bill looks wrong. Give me a refund.",billing,true
+t185,Good morning. exports are stuck at 99 percent. Thanks.,technical,false
+t186,"Hello team, I was charged twice this month. Please look into it.",billing,false
+t187,I was charged twice this month. Give me a refund.,billing,true
+t188,"Hi, exports are stuck at 99 percent. Can you help?",technical,false
+t189,"Hey, the app crashes when I open settings. Please look into it.",technical,false
+t190,Good morning. the page is blank in Safari. Can you help?,technical,false
+t191,"Hello team, the payment failed but money left my account. Please refund me.",billing,true
+t192,"Hello team, the payment failed but money left my account. Refund this now!",billing,true
+t193,"Hey, update the card on my account please. Thanks.",billing,false
+t194,"Hey, the app crashes when I open settings. Thanks.",technical,false
+t195,"Hi, the payment failed but money left my account. I'd like a refund for this.",billing,true
+t196,"Hey, the app crashes when I open settings. Thanks.",technical,false
+t197,"Hi, password reset emails never arrive.",technical,false
+t198,"Hey, exports are stuck at 99 percent. This is urgent.",technical,false
+t199,"Hello team, I need a copy of last month's invoice. Any update?",billing,false
+t200,Uploads time out after a minute.,technical,false
+t201,Good morning. I can't log in since the update.,technical,false
+t202,"Hey, there is a fee on my statement I don't recognise. Refund this now!",billing,true
+t203,"Hello team, I was charged twice this month. Thanks.",billing,false
+t204,"Hello team, can we talk about volume pricing. Thanks.",sales,false
+t205,"Hi, uploads time out after a minute. Give me a refund.",technical,true
+t206,"Hey, do you have a free trial for businesses.",sales,false
+t207,"Hello team, update the card on my account please. I want my money back.",billing,true
+t208,"Hello team, my invoice shows the wrong amount. Can you help?",billing,false
+t209,Password reset emails never arrive. This is urgent.,technical,false
+t210,Password reset emails never arrive. Can you help?,technical,false
+t211,"Hi, do you offer discounts for nonprofits.",sales,false
+t212,"Hey, update the card on my account please. Any update?",billing,false
+t213,"Hey, the page is blank in Safari. Thanks.",technical,false
+t214,"Hello team, I was charged twice this month. Please look into it.",billing,false
+t215,"Hi, can I get a quote for 50 seats. This is urgent.",sales,false
+t216,Password reset emails never arrive. This is urgent.,technical,false
+t217,"Hi, what's the difference between pro and team. Any update?",sales,false
+t218,"Hey, there is a fee on my statement I don't recognise. I want my money back.",billing,true
+t219,"Hi, which plan includes SSO. Can you help?",sales,false
+t220,Good morning. I can't log in since the update. Can you help?,technical,false
+t221,"Hey, the payment failed but money left my account. Give me a refund.",billing,true
+t222,Good morning. the payment failed but money left my account. Give me a refund.,billing,true
+t223,Good morning. what's the difference between pro and team. Please look into it.,sales,false
+t224,"Hello team, do you offer discounts for nonprofits. Can you help?",sales,false
+t225,"Hello team, sync stopped working on my phone. Please look into it.",technical,false
+t226,"Hi, update the card on my account please. Please refund me.",billing,true
+t227,"Hi, I need a copy of last month's invoice. This is urgent.",billing,false
+t228,Good morning. I can't log in since the update. Thanks.,technical,false
+t229,What's the difference between pro and team. Please look into it.,sales,false
+t230,Can we talk about volume pricing.,sales,false
+t231,"Hey, update the card on my account please. Thanks.",billing,false
+t232,The app crashes when I open settings. Thanks.,technical,false
+t233,"Hi, the payment failed but money left my account. This is urgent.",billing,false
+t234,"Hey, you billed me after I cancelled. Please refund me.",billing,true
+t235,Is there an annual pricing option. Please look into it.,sales,false
+t236,"Hello team, you billed me after I cancelled. Refund this now!",billing,true
+t237,I was charged twice this month. Refund this now!,billing,true
+t238,"Hello team, what's the difference between pro and team.",sales,false
+t239,Password reset emails never arrive. Can you help?,technical,false
+t240,"Hey, I was charged twice this month. This is urgent.",billing,false
+t241,Good morning. there is a fee on my statement I don't recognise. Give me a refund.,billing,true
+t242,"Hey, the tax on my bill looks wrong. Please refund me.",billing,true
+t243,"Hello team, is there an annual pricing option. Any update?",sales,false
+t244,Is there an annual pricing option. Any update?,sales,false
+t245,"Hello team, password reset emails never arrive.",technical,false
+t246,"Hey, what's the difference between pro and team. Any update?",sales,false
+t247,"Hey, I was charged twice this month. Please refund me.",billing,true
+t248,"Hey, my invoice shows the wrong amount. Refund this now!",billing,true
+t249,"Hi, why did my card get billed again. I'd like a refund for this.",billing,true
+t250,Good morning. do you have a free trial for businesses.,sales,false
+t251,Good morning. I want to upgrade my plan. Please look into it.,sales,false
+t252,Good morning. why did my card get billed again. Please refund me.,billing,true
+t253,"Hi, my invoice shows the wrong amount. Give me a refund.",billing,true
+t254,"Hey, the dashboard shows a 500 error.",technical,false
+t255,"Hey, the app crashes when I open settings. Please look into it.",technical,false
+t256,Good morning. why did my card get billed again. Thanks.,billing,false
+t257,Good morning. exports are stuck at 99 percent. Thanks.,technical,false
+t258,"Hi, I was charged twice this month. I'd like a refund for this.",billing,true
+t259,"Hi, password reset emails never arrive. Please refund me.",technical,true
+t260,The tax on my bill looks wrong. Please look into it.,billing,false
+t261,"Hey, I want to upgrade my plan.",sales,false
+t262,"Hello team, can we talk about volume pricing. This is urgent.",sales,false
+t263,Good morning. do you have a free trial for businesses. Can you help?,sales,false
+t264,"Hey, there is a fee on my statement I don't recognise. Refund this now!",billing,true
+t265,Can we talk about volume pricing. Thanks.,sales,false
+t266,Good morning. update the card on my account please. Give me a refund.,billing,true
+t267,The dashboard shows a 500 error. Any update?,technical,false
+t268,Why did my card get billed again. Refund this now!,billing,true
+t269,Notifications are delayed by hours.,technical,false
+t270,"Hello team, can I get a quote for 50 seats.",sales,false
+t271,Which plan includes SSO.,sales,false
+t272,"Hi, do you have a free trial for businesses. Please look into it.",sales,false
+t273,My invoice shows the wrong amount. Please look into it.,billing,false
+t274,"Hello team, why did my card get billed again. Any update?",billing,false
+t275,Good morning. the payment failed but money left my account. Refund this now!,billing,true
+t276,"Hello team, the dashboard shows a 500 error. This is urgent.",technical,false
+t277,"Hi, the dashboard shows a 500 error. Any update?",technical,false
+t278,Good morning. is there an annual pricing option. This is urgent.,sales,false
+t279,"Hi, you billed me after I cancelled. Please refund me.",billing,true
+t280,"Hello team, the dashboard shows a 500 error. Can you help?",technical,false
+t281,The dashboard shows a 500 error. Can you help?,technical,false
+t282,"Hello team, how much is the enterprise plan. Please look into it.",sales,false
+t283,Notifications are delayed by hours. Please look into it.,technical,false
+t284,"Hello team, notifications are delayed by hours. Any update?",technical,false
+t285,"Hi, the page is blank in Safari. This is urgent.",technical,false
+t286,"Hi, password reset emails never arrive. Any update?",technical,false
+t287,"Hello team, I was charged twice this month. I'd like a refund for this.",billing,true
+t288,Password reset emails never arrive. Please look into it.,technical,false
+t289,"Hey, why did my card get billed again. Give me a refund.",billing,true
+t290,"Hi, I want to upgrade my plan.",sales,false
+t291,Exports are stuck at 99 percent.,technical,false
+t292,I was charged twice this month. Can you help?,billing,false
+t293,"Hi, I want to upgrade my plan. This is urgent.",sales,false
+t294,"Hello team, sync stopped working on my phone. Thanks.",technical,false
+t295,"Hi, can we talk about volume pricing. Thanks.",sales,false
+t296,The payment failed but money left my account. Any update?,billing,false
+t297,"Hey, why did my card get billed again. Can you help?",billing,false
+t298,"Hello team, the app crashes when I open settings. I'd like a refund for this.",technical,true
+t299,Good morning. can we talk about volume pricing. This is urgent.,sales,false

@@ -1,0 +1,10 @@
+{
+  "name": "decisionsmith",
+  "version": "0.1.0",
+  "description": "Skills, commands and an MCP server for the decisionsmith harness: LLM or Jev as teacher, Laya as a fast student.",
+  "author": {
+    "name": "Izam Mohammed"
+  },
+  "homepage": "https://github.com/izam-mohammed/decisionsmith",
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "decisionsmith",
+  "owner": {
+    "name": "Izam Mohammed"
+  },
+  "plugins": [
+    {
+      "name": "decisionsmith",
+      "source": "./plugin",
+      "description": "Use and fine-tune System One models (Jev, Laya) with an LLM as the teacher."
+    }
+  ]
+}
