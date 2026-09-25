@@ -365,7 +365,7 @@ def test_train_with_teacher_keeps_test_rows_out(tiny, monkeypatch):
     data = [{"text": t, "split": "test" if i < 3 else "train"} for i, t in enumerate(corpus(10))] + [
         "sync is broken today"
     ]
-    m.train(data, teacher=FakeEngine(team), verbose=False)
+    m.train(data, teacher=FakeEngine(team), out=str(tiny), verbose=False)
     texts = {r["text"] for r in seen["rows"]}
     assert not texts & set(corpus(10)[:3]) and "sync is broken today" in texts
     assert {r["split"] for r in seen["rows"]} == {"train", None}
