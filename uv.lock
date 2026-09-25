@@ -1968,8 +1968,10 @@ agno = [
 ]
 all = [
     { name = "anthropic" },
+    { name = "fastapi" },
     { name = "laya" },
     { name = "mcp", version = "2.2.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "uvicorn" },
 ]
 anthropic = [
     { name = "anthropic" },
@@ -2031,6 +2033,10 @@ pydantic-ai = [
 semantic-kernel = [
     { name = "semantic-kernel" },
 ]
+serve = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
 smolagents = [
     { name = "smolagents" },
 ]
@@ -2061,8 +2067,9 @@ requires-dist = [
     { name = "autogen-core", marker = "extra == 'autogen'", specifier = ">=0.4" },
     { name = "claude-agent-sdk", marker = "extra == 'claude-agent-sdk'", specifier = ">=0.2" },
     { name = "crewai", marker = "python_full_version < '3.14' and extra == 'crewai'", specifier = ">=1.0" },
-    { name = "decisionsmith", extras = ["laya", "anthropic", "mcp"], marker = "extra == 'all'" },
+    { name = "decisionsmith", extras = ["laya", "anthropic", "mcp", "serve"], marker = "extra == 'all'" },
     { name = "dspy", marker = "extra == 'dspy'", specifier = ">=3.0" },
+    { name = "fastapi", marker = "extra == 'serve'", specifier = ">=0.115" },
     { name = "google-adk", marker = "extra == 'google-adk'", specifier = ">=2.0" },
     { name = "haystack-ai", marker = "extra == 'haystack'", specifier = ">=2.0" },
     { name = "httpx", specifier = ">=0.27" },
@@ -2081,8 +2088,9 @@ requires-dist = [
     { name = "pydantic-ai-slim", marker = "extra == 'pydantic-ai'", specifier = ">=1.0" },
     { name = "semantic-kernel", marker = "extra == 'semantic-kernel'", specifier = ">=1.0" },
     { name = "smolagents", marker = "extra == 'smolagents'", specifier = ">=1.0" },
+    { name = "uvicorn", marker = "extra == 'serve'", specifier = ">=0.30" },
 ]
-provides-extras = ["laya", "anthropic", "mcp", "all", "litellm", "langchain", "llamaindex", "dspy", "semantic-kernel", "autogen", "smolagents", "haystack", "pydantic-ai", "crewai", "openai", "instructor", "llm-plugin", "outlines", "langgraph", "openai-agents", "claude-agent-sdk", "google-adk", "agno"]
+provides-extras = ["laya", "anthropic", "mcp", "serve", "all", "litellm", "langchain", "llamaindex", "dspy", "semantic-kernel", "autogen", "smolagents", "haystack", "pydantic-ai", "crewai", "openai", "instructor", "llm-plugin", "outlines", "langgraph", "openai-agents", "claude-agent-sdk", "google-adk", "agno"]
 
 [package.metadata.requires-dev]
 dev = [

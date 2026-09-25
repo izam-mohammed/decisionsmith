@@ -322,6 +322,28 @@ def _mcp(args: argparse.Namespace) -> int:
     return OK
 
 
+def _serve(args: argparse.Namespace) -> int:
+    from .serve import app
+
+    try:
+        import uvicorn
+    except ImportError:
+        raise ValueError("decisionsmith serve needs Uvicorn: uv add 'decisionsmith[serve]'") from None
+    mode: Any = args.mode
+    if mode and "=" in mode:
+        mode = dict(part.strip().split("=", 1) for part in mode.split(",") if part.strip())
+    api = app(
+        args.model,
+        teacher=_teacher(args),
+        mode=mode,
+        log=None if args.log == "none" else args.log,
+        collect=args.collect,
+        device=args.device,
+    )
+    uvicorn.run(api, host=args.host, port=args.port, log_level=args.log_level)
+    return OK
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="decisionsmith", description="Use and fine-tune System One models (Jev, Laya).")
     p.add_argument("--version", action="version", version="decisionsmith 0.1.0")
@@ -438,6 +460,19 @@ def parser() -> argparse.ArgumentParser:
     d = cmd("doctor", "check the install, device, keys and (optionally) engines")
     d.add_argument("--engines", help="comma list to test with one tiny request each (may cost a fraction of a cent)")
     d.set_defaults(run=_doctor)
+
+    sv = sub.add_parser("serve", help="serve a saved model over HTTP (/v1/decide, Jev-compatible /v1/systemone)")
+    sv.add_argument("model", help="a folder written by model.save(), e.g. models/ticket-v2")
+    sv.add_argument("--teacher", help="LLM for unsure cases, e.g. claude-haiku-4-5 (default: none, the model decides)")
+    sv.add_argument("--teacher-url", dest="teacher_url", help="OpenAI-compatible server for --teacher")
+    sv.add_argument("--mode", help="teacher | shadow | cascade | student, or per field: team=cascade,urgent=student")
+    sv.add_argument("--log", default="decisions.db", help="decision log (SQLite); 'none' logs nothing")
+    sv.add_argument("--collect", type=float, help="share of texts kept in the log, 0-1 (default 1.0)")
+    sv.add_argument("--host", default="127.0.0.1", help="bind address (default 127.0.0.1, this machine only)")
+    sv.add_argument("--port", type=int, default=8000)
+    sv.add_argument("--device")
+    sv.add_argument("--log-level", dest="log_level", default="info", choices=["debug", "info", "warning", "error"])
+    sv.set_defaults(run=_serve, json=False)
 
     m = sub.add_parser("mcp", help="run the MCP server on stdio")
     m.set_defaults(run=_mcp, json=False)

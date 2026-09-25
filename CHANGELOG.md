@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **`decisionsmith serve models/<name>-vN`** and **`decisionsmith.serve.app(path_or_harness)`** (new `[serve]` extra:
+  FastAPI + Uvicorn): `POST /v1/decide`, a Jev-compatible `POST /v1/systemone`, `POST /v1/label`, `GET /v1/status`,
+  `GET /health`, Prometheus `GET /metrics` and OpenAPI docs; optional bearer key from `DECISIONSMITH_API_KEY`, body
+  and text size limits, JSON errors with a fix. See docs/serve.md.
 - **Saved models, review fixes.** `model.train()` after `evaluate()` forgets the old report and thresholds; `ds.load`
   with a class compares every question (descriptions and docstring too) and lists the differences; versions are
   numbered one above the highest; a loaded model saves as the next version of its own name; a labels model is named

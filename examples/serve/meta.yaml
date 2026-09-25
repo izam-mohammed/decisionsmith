@@ -1,0 +1,4 @@
+title: Serve a model over HTTP
+summary: decisionsmith serve / decisionsmith.serve.app puts a saved model behind /v1/decide, a Jev-compatible /v1/systemone, labels, status and Prometheus metrics.
+needs: [serve, laya]
+imports: [fastapi]
