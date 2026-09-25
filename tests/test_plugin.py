@@ -46,3 +46,20 @@ def test_build_skill_uses_only_real_mcp_tools():
     assert used and used <= names, used - names
     skill = files[0].read_text()
     assert skill.count("**Approval.**") == 3 and "## Honesty rules" in skill
+
+
+def test_build_agents_have_only_the_tools_they_need():
+    from decisionsmith import mcp
+
+    prefix = "mcp__plugin_decisionsmith_decisionsmith__"
+    names = {fn.__name__ for fn in mcp.TOOLS}
+    tools = {
+        a: [t.strip() for t in front(PLUGIN / "agents" / ("%s.md" % a))[0]["tools"].split(",")]
+        for a in ("labeler", "data-writer", "evaluator")
+    }
+    for granted in tools.values():
+        assert all(t[len(prefix) :] in names for t in granted if t.startswith(prefix)), granted
+    assert tools["labeler"] == [prefix + "golden_batch", prefix + "golden_submit"]
+    assert tools["data-writer"] == [prefix + "golden_add"]
+    assert "Bash" in tools["evaluator"] and prefix + "evaluate" in tools["evaluator"]
+    assert not any(t.startswith(prefix + "golden_") for t in tools["evaluator"])

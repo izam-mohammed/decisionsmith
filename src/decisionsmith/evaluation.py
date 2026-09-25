@@ -41,6 +41,11 @@ def training_hashes(model: Model) -> set[str]:
     return set()
 
 
+def by_human(labelled_by: str) -> bool:
+    """Rows a person labelled measure accuracy; rows an agent or LLM labelled measure agreement with it."""
+    return labelled_by == "human" or labelled_by.startswith("human:")
+
+
 def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     schema = model.schema
     rows = data_mod.load(model._rows(data), schema, split="test")
@@ -155,7 +160,8 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     }
     if by_source:
         details["labelled_by"] = {
-            k: {"decisions": len(v), "accuracy": sum(v) / len(v)} for k, v in sorted(by_source.items())
+            k: {"decisions": len(v), "accuracy" if by_human(k) else "agreement": sum(v) / len(v)}
+            for k, v in sorted(by_source.items())
         }
     title = "evaluate: %s on %d rows" % (short_name(model.name), len(rows))
     report = Report("evaluate", title, table, go=go, reasons=reasons or ["ready for the harness"], details=details)

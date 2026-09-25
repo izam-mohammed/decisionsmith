@@ -33,6 +33,18 @@ Run: `uvx decisionsmith mcp` (stdio). Tools (typed JSON in/out):
 | `label` | `log`, `id`, `fields` | ok |
 | `engines_check` | `engines[]` | reachable?, auth ok?, latency, error + fix |
 | `schema_compile` | `schema` | Jev-format questions + warnings (e.g. > 20 options) |
+| `golden_start` | `source` (log `.db` or texts file), `labels` or `schema`, `n?`, `strategy?`, `test?`, `out?`, `agent?` | session file path, rows, test rows |
+| `golden_batch` | `session`, `size?` | next texts (second answers mixed in under new ids), options with descriptions, instructions |
+| `golden_submit` | `session`, `answers[]` (`{id, answers}` or `{id, skip}`), `agent?` | accepted, rejected with reasons, progress |
+| `golden_add` | `session`, `examples[]` (`{text, answers}`), `agent?` | accepted, rejected (repeats, near copies of test texts) |
+| `golden_status` | `session` | progress, balance, agreement between the two answers, disagreements, skipped rows |
+| `golden_finish` | `session`, `out?`, `overwrite?` | writes `golden.csv` and closes the session |
+| `data_check` | `path`, `schema?` or `labels?` | balance, repeats, test/train leaks and near copies, lengths, advice |
+| `evaluate` | `model` folder or checkpoint, `data`, `schema?`/`labels?`, `target?`, `save?` | per field numbers, accuracy (person-labelled rows) or agreement (agent or LLM labels) per labeller, go/no-go, saved folder |
+| `model_info` | `path` | labels or fields, thresholds, saved go/no-go, how to load it |
+
+The `golden_*`, `data_check`, `evaluate` and `model_info` tools let a coding agent build a model itself: see
+[agent-build.md](agent-build.md).
 
 Client setup (verify paths against each client's current docs at release):
 

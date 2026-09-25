@@ -121,8 +121,16 @@ class Report:
             lines.extend("  ".join(v.ljust(w) for v, w in zip(row, widths)) for row in cells)
         by = self.details.get("labelled_by")
         if by:
-            lines += ["", "accuracy by who labelled the rows (against agent or LLM labels it measures agreement):"]
-            lines += ["  %-28s %s on %d decisions" % (k, _fmt(v["accuracy"]), v["decisions"]) for k, v in by.items()]
+            lines += ["", "by who labelled the rows:"]
+            lines += [
+                "  %s %s on %d decisions"
+                % (
+                    "accuracy on rows labelled by %s:" % k if "accuracy" in v else "agreement with %s's labels:" % k,
+                    _fmt(v.get("accuracy", v.get("agreement"))),
+                    v["decisions"],
+                )
+                for k, v in by.items()
+            ]
         if self.go is not None:
             lines += ["", "go: %s" % ("yes" if self.go else "no")]
         lines.extend("  - %s" % r for r in self.reasons)

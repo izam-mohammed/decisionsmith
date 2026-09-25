@@ -5,11 +5,14 @@
 - **A coding agent can build the model, no LLM API key.** `ds.golden(..., teacher="agent")` and
   `decisionsmith golden --teacher agent` write a labelling session (`golden.session.json`) instead of calling an LLM;
   the agent labels it through new MCP tools (`golden_start`, `golden_batch`, `golden_submit`, `golden_add`,
-  `golden_status`, `golden_finish`), with a blind second pass on a share of the rows; `decisionsmith golden --finish`
-  writes `golden.csv` (plus a `checked` column; fields the passes disagree on are left blank). Examples the agent
-  writes are marked synthetic, never used as test rows and kept only when the re-check agrees. New MCP tools
-  `data_check` (balance, repeats, leaks, lengths), `evaluate` (with `save=`) and `model_info`; `finetune` takes
-  `labels` or a session file. `model.evaluate` reports accuracy per `labelled_by`. Claude Code plugin:
+  `golden_status`, `golden_finish`). A share of the rows comes back under new, random ids for a second, independent
+  answer (each id takes one answer; the `labeler` subagent has only the two labelling tools);
+  `decisionsmith golden --finish` writes `golden.csv` (plus a `checked` column; fields the two answers disagree on
+  are left blank) and closes the session. Examples the agent writes are marked synthetic, never used as test rows,
+  rejected when they share 80% or more of their words with a test text, and kept only when the second answer
+  agrees. New MCP tools `data_check` (balance, repeats, leaks, near copies, lengths), `evaluate` (with `save=`) and
+  `model_info`; `finetune` takes `labels` or a session file. `model.evaluate` ends with a breakdown by `labelled_by`:
+  accuracy on rows a person labelled, agreement with an agent's or LLM's labels. Claude Code plugin:
   `/decisionsmith:build`, the `decisionsmith-build` skill and `labeler`, `data-writer`, `evaluator` subagents;
   AGENTS.md has the same playbook for Codex, Gemini CLI and Cursor.
 

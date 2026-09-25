@@ -7,12 +7,13 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 import threading
 from datetime import datetime, timezone
 from typing import Any
 
 from .schema import Schema, compile_schema
-from .training.data import same_text, text_hash
+from .training.data import near_copy, same_text, text_hash, words_of
 
 FORMAT = "decisionsmith.golden-session/1"
 RECHECK = 0.2
@@ -24,11 +25,10 @@ RULES = (
     "Answer from the text alone, one text at a time. If no option fits or you are unsure, send "
     '{"id": ..., "skip": "why"} instead of guessing. Never change a text. '
 )
-PASS_HELP = {
-    1: RULES + "Send answers with golden_submit.",
-    2: RULES + "This is the blind re-check: label these texts again without looking at earlier answers or "
-    "notes (a fresh labeller, e.g. a new subagent, is best). Disagreements are flagged for the user.",
-}
+INSTRUCTIONS = RULES + (
+    "Each id takes one answer; send them with golden_submit. A share of the texts comes back later under a new id "
+    "for an independent second answer: label every text as if you had never seen it."
+)
 
 
 def agent_of(teacher: Any) -> str | None:
@@ -118,6 +118,7 @@ def start(
                 "skipped": None,
                 "synthetic": False,
                 "recheck": False,
+                "check_id": None,
                 "check": None,
             }
         )
@@ -130,7 +131,8 @@ def start(
         "schema": describe(schema),
         "agent": agent or None,
         "strategy": strategy,
-        "out": os.path.relpath(os.path.abspath(out), os.path.dirname(os.path.abspath(path))),
+        "out": os.path.basename(out),
+        "finished": None,
         "recheck": RECHECK,
         "rows": rows,
     }
@@ -149,7 +151,7 @@ def start(
 
 
 def _pick_rechecks(rows: list[dict[str, Any]], position: Any) -> None:
-    """A stable share of the rows the agent labels gets a blind second pass (at least one)."""
+    """A stable share of the rows the agent labels gets an independent second answer (at least one)."""
     open_rows = [r for r in rows if r["labelled_by"] != "human"]
     picked = [r for r in open_rows if position("recheck " + r["text"]) < RECHECK]
     if open_rows and not picked:
@@ -179,27 +181,57 @@ def _open(schema: Schema, r: dict[str, Any]) -> list[str]:
     return [f for f in schema.fields if f not in r["human"]]
 
 
+def _not_finished(path: str, session: dict[str, Any]) -> None:
+    if session.get("finished"):
+        raise ValueError(
+            "%s is finished (%s was written from it); edit that file, or start a new session with overwrite=True "
+            "(CLI: --overwrite) to label more" % (path, session["out"])
+        )
+
+
+def _check_id(taken: set[str]) -> str:
+    """An id for a row's second answer: random, so it can't be worked out from the text or the row's id."""
+    while True:
+        cid = "g" + secrets.token_hex(6)
+        if cid not in taken:
+            taken.add(cid)
+            return cid
+
+
 def batch(path: str, size: int = 20) -> dict[str, Any]:
-    """The next texts to label (pass 1), then the blind re-check (pass 2), with the options and instructions."""
+    """The next texts to label, with the options and instructions. Texts waiting for their second answer are mixed
+    in under ids that only this function hands out."""
+    from .golden_set import _position
+
     if size < 1:
         raise ValueError("size must be at least 1")
-    session = load(path)
-    schema = schema_of(session)
-    stages = [(r, _stage(r)) for r in session["rows"]]
-    now = 1 if any(s == 1 for _, s in stages) else 2 if any(s == 2 for _, s in stages) else None
-    todo = [r for r, s in stages if s == now] if now else []
+    with _LOCK:
+        session = load(path)
+        _not_finished(path, session)
+        schema = schema_of(session)
+        rows = session["rows"]
+        taken = {r["id"] for r in rows} | {r["check_id"] for r in rows if r.get("check_id")}
+        todo, new = [], False
+        for r in rows:
+            stage = _stage(r)
+            if stage == 2 and not r.get("check_id"):
+                r["check_id"], new = _check_id(taken), True
+            if stage:
+                todo.append((r["id"] if stage == 1 else r["check_id"], r))
+        if new:
+            _save(path, session)
+    todo.sort(key=lambda x: _position("order " + x[0]))
     items = []
-    for r in todo[:size]:
+    for rid, r in todo[:size]:
         fields = _open(schema, r)
         only = {"fields": fields} if fields != list(schema.fields) else {}
-        items.append({"id": r["id"], "text": r["text"], **only})
+        items.append({"id": rid, "text": r["text"], **only})
     return {
         "session": path,
-        "pass": now,
         "items": items,
         "remaining": len(todo),
         "fields": _fields(schema),
-        "instructions": PASS_HELP[now] if now else "",
+        "instructions": INSTRUCTIONS if items else "",
         "answer_format": [{"id": "<id>", "answers": {n: "<option>" for n in schema.fields}}],
         "next": _next(path, session),
     }
@@ -225,27 +257,45 @@ def _name(session: dict[str, Any], agent: str | None) -> str:
     return "agent:" + _checked_name(agent or session["agent"] or DEFAULT_AGENT)
 
 
+def _target(rows: dict[str, Any], checks: dict[str, Any], rid: Any) -> tuple[dict[str, Any] | None, int | None]:
+    if not isinstance(rid, str):
+        return None, None
+    if rid in checks:
+        r = checks[rid]
+        return r, 2 if r["check"] is None else None
+    r = rows.get(rid)
+    return r, 1 if r is not None and r["answers"] is None and r["skipped"] is None else None
+
+
+def _reason(given: Any) -> str:
+    if not isinstance(given, str) or not given.strip():
+        raise ValueError('a skip needs a reason: {"id": ..., "skip": "no option fits"}')
+    return given.strip()
+
+
 def submit(path: str, answers: list[dict[str, Any]], agent: str | None = None) -> dict[str, Any]:
-    """Store the agent's answers after checking them against the schema; each bad item is rejected with why."""
+    """Store the agent's answers after checking them against the schema; each bad item is rejected with why.
+    Every id takes one answer: a second one is rejected, whichever row it is."""
     if not isinstance(answers, list):
         raise ValueError('answers must be a list: [{"id": "...", "answers": {"field": "option"}}]')
     with _LOCK:
         session = load(path)
+        _not_finished(path, session)
         schema = schema_of(session)
         by = _name(session, agent)
         rows = {r["id"]: r for r in session["rows"]}
+        checks = {r["check_id"]: r for r in session["rows"] if r.get("check_id")}
         accepted, rejected = 0, []
         for i, item in enumerate(answers):
             rid = item.get("id") if isinstance(item, dict) else None
-            r = rows.get(rid) if isinstance(rid, str) else None
-            stage = _stage(r) if r is not None else None
+            r, stage = _target(rows, checks, rid)
             try:
                 if r is None:
                     raise ValueError("item %d: no row with id %r in this session" % (i, rid))
                 if stage is None:
-                    raise ValueError("already done; to change it, edit golden.csv after --finish")
+                    raise ValueError("already answered; to change a label, edit golden.csv after --finish")
                 if isinstance(item, dict) and "skip" in item:
-                    reason = str(item["skip"]).strip() or "no reason given"
+                    reason = _reason(item["skip"])
                     if stage == 1:
                         r["skipped"], r["labelled_by"] = reason, by
                     else:
@@ -265,14 +315,17 @@ def submit(path: str, answers: list[dict[str, Any]], agent: str | None = None) -
 
 
 def add(path: str, examples: list[dict[str, Any]], agent: str | None = None) -> dict[str, Any]:
-    """Add examples the agent wrote (marked synthetic, train split only, all re-checked blind before they count)."""
+    """Add examples the agent wrote (marked synthetic, train split only, each needs an agreeing second answer
+    before it counts). Texts that repeat a session text, or share most words with a test text, are rejected."""
     if not isinstance(examples, list):
         raise ValueError('examples must be a list: [{"text": "...", "answers": {"field": "option"}}]')
     with _LOCK:
         session = load(path)
+        _not_finished(path, session)
         schema = schema_of(session)
         by = _name(session, agent) + ":synthetic"
         seen = {same_text(r["text"]) for r in session["rows"]}
+        tests = [words_of(r["text"]) for r in session["rows"] if r["split"] == "test"]
         accepted, rejected = 0, []
         for i, ex in enumerate(examples):
             text = ex.get("text") if isinstance(ex, dict) else None
@@ -281,6 +334,8 @@ def add(path: str, examples: list[dict[str, Any]], agent: str | None = None) -> 
                     raise ValueError("item %d: needs a non-empty 'text'" % i)
                 if same_text(text) in seen:
                     raise ValueError("item %d: this text is already in the session" % i)
+                if any(near_copy(words_of(text), t) for t in tests):
+                    raise ValueError("item %d: shares most of its words with a held-out test text; write a new one" % i)
                 labels = _labels(schema, list(schema.fields), ex.get("answers"))
             except (ValueError, KeyError) as e:
                 rejected.append({"item": i, "error": _why(e)})
@@ -297,6 +352,7 @@ def add(path: str, examples: list[dict[str, Any]], agent: str | None = None) -> 
                     "skipped": None,
                     "synthetic": True,
                     "recheck": True,
+                    "check_id": None,
                     "check": None,
                 }
             )
@@ -333,9 +389,11 @@ def _counts(session: dict[str, Any]) -> dict[str, Any]:
 
 
 def _next(path: str, session: dict[str, Any]) -> str:
+    if session.get("finished"):
+        return "finished: %s is written; edit it there" % session["out"]
     c = _counts(session)
     if c["to_label"] or c["to_recheck"]:
-        return "golden_batch(%r) for the next %s" % (path, "texts" if c["to_label"] else "blind re-check")
+        return "golden_batch(%r) for the next texts" % path
     return "done: golden_finish(%r) or `decisionsmith golden --finish %s` writes the CSV" % (path, path)
 
 
@@ -365,6 +423,7 @@ def status(path: str) -> dict[str, Any]:
         "session": path,
         **c,
         "agreement": c["agreed"] / c["rechecked"] if c["rechecked"] else None,
+        "finished": bool(session.get("finished")),
         "split": {s: sum(r["split"] == s for r in rows) for s in ("train", "test")},
         "balance": balance,
         "labelled_by": _tally(r["labelled_by"] for r in rows if r["labelled_by"]),
@@ -381,6 +440,12 @@ def _tally(values: Any) -> dict[str, int]:
     return out
 
 
+def _bare(path: str, name: Any) -> str:
+    if not isinstance(name, str) or name in ("", ".", "..") or os.path.basename(name) != name or "\\" in name:
+        raise ValueError("%s: 'out' must be a file name next to the session file, got %r" % (path, name))
+    return name
+
+
 def finish(path: str, out: str | None = None, overwrite: bool = False) -> dict[str, Any]:
     """Write golden.csv from the session: the same columns as an LLM-labelled one, plus `checked`.
 
@@ -391,7 +456,7 @@ def finish(path: str, out: str | None = None, overwrite: bool = False) -> dict[s
 
     session = load(path)
     schema = schema_of(session)
-    out = out or os.path.join(os.path.dirname(path), session["out"])
+    out = out or os.path.join(os.path.dirname(path), _bare(path, session["out"]))
     _check_out(out, overwrite)
     rows, dropped = [], 0
     for r in session["rows"]:
@@ -418,6 +483,10 @@ def finish(path: str, out: str | None = None, overwrite: bool = False) -> dict[s
     if not rows:
         raise ValueError("nothing labelled yet in %s; label with golden_batch / golden_submit first" % path)
     _write(rows, out, schema)
+    with _LOCK:
+        latest = load(path)
+        latest["finished"] = latest.get("finished") or datetime.now(timezone.utc).isoformat(timespec="seconds")
+        _save(path, latest)
     c = _counts(session)
     test = sum(r["split"] == "test" for r in rows)
     message = "golden: wrote %s: %d rows (%d split=test)%s%s%s%s" % (

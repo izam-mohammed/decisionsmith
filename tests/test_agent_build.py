@@ -35,16 +35,20 @@ def answer(text, fields=("team", "wants_refund")):
     return {f: t[f] for f in fields}
 
 
+def second_ids(session):
+    return {r["check_id"] for r in golden_session.load(session)["rows"] if r.get("check_id")}
+
+
 def label_all(session, wrong=(), agent="claude-code"):
-    """A scripted agent: label every batch; in pass 2 answer `wrong` ids differently."""
+    """A scripted agent: label every batch; on the second answer, answer the texts in `wrong` differently."""
     while True:
         b = tools.golden_batch(session, 7)
         if not b["items"]:
             return b
-        answers = []
+        answers, second = [], second_ids(session)
         for item in b["items"]:
             got = answer(item["text"], item.get("fields", list(b["fields"])))
-            if b["pass"] == 2 and item["id"] in wrong:
+            if item["id"] in second and item["text"] in wrong:
                 got["team"] = next(x for x in LABELS if x != got["team"])
             answers.append({"id": item["id"], "answers": got})
         res = tools.golden_submit(session, answers, agent)
@@ -66,11 +70,11 @@ def test_agent_session_round_trip(tmp_path, capsys):
     assert data["agent"] == "claude-code" and data["labels"] is None and data["out"] == "golden.csv"
     assert golden_session.schema_of(data).questions() == compile_schema(Ticket).questions()
     b = tools.golden_batch(session, 5)
-    assert b["pass"] == 1 and len(b["items"]) == 5 and b["remaining"] == 20
+    assert "pass" not in b and len(b["items"]) == 5 and b["remaining"] == 20
     assert set(b["items"][0]) == {"id", "text"} and b["fields"]["team"]["options"] == LABELS
     assert b["fields"]["team"]["descriptions"]["billing"] == "payments and refunds" and "skip" in b["instructions"]
     done = label_all(session, agent=None)
-    assert done["pass"] is None and done["instructions"] == "" and "golden_finish" in done["next"]
+    assert done["instructions"] == "" and "golden_finish" in done["next"]
     st = tools.golden_status(session)
     assert st["labelled"] == 20 and st["rechecked"] >= 1 and st["agreement"] == 1.0 and st["disagreed"] == 0
     assert st["labelled_by"] == {"agent:claude-code": 20} and sum(st["balance"]["team"].values()) == 20
@@ -83,38 +87,50 @@ def test_agent_session_round_trip(tmp_path, capsys):
     with pytest.raises(FileExistsError):
         tools.golden_finish(session)
     assert tools.golden_finish(session, str(tmp_path / "g.jsonl"))["rows"] == 20
+    st = tools.golden_status(session)
+    assert st["finished"] and st["next"] == "finished: golden.csv is written; edit it there"
+    for call in (
+        lambda: tools.golden_batch(session),
+        lambda: tools.golden_submit(session, [{"id": got[0]["id"], "answers": answer(got[0]["text"])}]),
+        lambda: tools.golden_add(
+            session, [{"text": "a new text after finishing", "answers": {"team": "billing", "wants_refund": True}}]
+        ),
+    ):
+        with pytest.raises(ValueError, match="is finished .*golden.csv was written"):
+            call()
 
 
 def test_labels_session_and_rechecks_flag_disagreements(tmp_path):
     session, _ = start(tmp_path, 40, schema=LABELS)
     data = golden_session.load(session)
     assert data["labels"] == LABELS and golden_session.spec_of(data) == LABELS
-    rechecked = [r["id"] for r in data["rows"] if r["recheck"]]
+    rechecked = {r["text"]: r["id"] for r in data["rows"] if r["recheck"]}
     b = tools.golden_batch(session, 100)
     first = [{"id": i["id"], "answers": {"label": truth(i["text"])["team"]}} for i in b["items"]]
     tools.golden_submit(session, first)
     b2 = tools.golden_batch(session, 100)
-    assert b2["pass"] == 2 and "blind" in b2["instructions"] and {i["id"] for i in b2["items"]} == set(rechecked)
-    wrong, unsure = rechecked[0], rechecked[1]
+    assert {i["text"] for i in b2["items"]} == set(rechecked) and "second answer" in b2["instructions"]
+    assert not {i["id"] for i in b2["items"]} & set(rechecked.values())
+    wrong, unsure = sorted(rechecked)[:2]
     second = []
     for i in b2["items"]:
         team = truth(i["text"])["team"]
-        if i["id"] == wrong:
+        if i["text"] == wrong:
             second.append({"id": i["id"], "answers": {"label": next(x for x in LABELS if x != team)}})
-        elif i["id"] == unsure:
-            second.append({"id": i["id"], "skip": " "})
+        elif i["text"] == unsure:
+            second.append({"id": i["id"], "skip": " two could fit "})
         else:
             second.append({"id": i["id"], "answers": {"label": team}})
     assert tools.golden_submit(session, second)["disagreed"] == 2
     st = tools.golden_status(session)
-    assert {d["id"] for d in st["disagreements"]} == {wrong, unsure}
-    assert any(d["second"] == "skipped: no reason given" for d in st["disagreements"])
+    assert {d["id"] for d in st["disagreements"]} == {rechecked[wrong], rechecked[unsure]}
+    assert any(d["second"] == "skipped: two could fit" for d in st["disagreements"])
     assert st["agreement"] == (len(rechecked) - 2) / len(rechecked)
     res = tools.golden_finish(session)
     assert res["disagreed"] == 2 and "left blank for you" in res["message"]
-    by_id = {r["id"]: r for r in read(tmp_path / "golden.csv")}
-    assert by_id[wrong]["label"] == "" and by_id[wrong]["checked"] == "disagreed: label"
-    assert by_id[unsure]["label"] == "" and by_id[unsure]["labelled_by"] == "agent:coding-agent"
+    by_text = {r["text"]: r for r in read(tmp_path / "golden.csv")}
+    assert by_text[wrong]["label"] == "" and by_text[wrong]["checked"] == "disagreed: label"
+    assert by_text[unsure]["label"] == "" and by_text[unsure]["labelled_by"] == "agent:coding-agent"
 
 
 def test_submit_rejects_bad_items_one_by_one(tmp_path):
@@ -140,7 +156,7 @@ def test_submit_rejects_bad_items_one_by_one(tmp_path):
     for part in ("item 0", "no row with id 'nope'", "must be an object", "unknown fields ['colour']", "missing"):
         assert any(part in e for e in errors), part
     assert any("'legal' is not an option" in e for e in errors) and any("'maybe'" in e for e in errors)
-    assert "already done" in errors[-1]
+    assert "already answered" in errors[-1]
     st = tools.golden_status(session)
     assert st["skipped"] == 1 and st["skipped_rows"][0]["why"] == "two teams could fit" and st["labelled"] == 1
     with pytest.raises(ValueError, match="must be a list"):
@@ -172,7 +188,9 @@ def test_synthetic_examples_count_only_after_an_agreeing_recheck(tmp_path):
     with pytest.raises(ValueError, match="must be a list"):
         tools.golden_add(session, {"text": "x"})
     b = tools.golden_batch(session, 10)
-    assert b["pass"] == 2 and {i["text"] for i in b["items"]} == set(written)
+    assert {i["text"] for i in b["items"]} == set(written) and not {i["id"] for i in b["items"]} & set(
+        rows_ids(session)
+    )
     agree, disagree, _ = b["items"]
     tools.golden_submit(
         session,
@@ -186,6 +204,10 @@ def test_synthetic_examples_count_only_after_an_agreeing_recheck(tmp_path):
     assert [r["text"] for r in synthetic] == [agree["text"]] and synthetic[0]["split"] == "train"
     assert res["dropped_synthetic"] == 2 and "2 synthetic rows left out" in res["message"]
     assert tools.golden_status(session)["disagreements"][0]["synthetic"] is True
+
+
+def rows_ids(session):
+    return [r["id"] for r in golden_session.load(session)["rows"]]
 
 
 def test_human_labels_from_the_log_are_kept(tmp_path):
@@ -256,6 +278,135 @@ def test_every_row_gets_rechecked_at_least_once():
     golden_session._pick_rechecks([], lambda text: 0.9)
 
 
+# the second answer can only come from an id golden_batch handed out
+
+
+def first_pass(session):
+    b = tools.golden_batch(session, 100)
+    res = tools.golden_submit(session, [{"id": i["id"], "answers": answer(i["text"])} for i in b["items"]])
+    assert res["accepted"] == len(b["items"]) and res["to_label"] == 0
+    return {i["text"]: i["id"] for i in b["items"]}
+
+
+def recheck_rows(session):
+    return [r for r in golden_session.load(session)["rows"] if r["recheck"]]
+
+
+def test_a_duplicate_in_the_same_call_is_not_a_second_answer(tmp_path):
+    session, _ = start(tmp_path, 20)
+    rows = golden_session.load(session)["rows"]
+    rc = next(r for r in rows if r["recheck"])
+    plain = next(r for r in rows if not r["recheck"])
+    items = [{"id": r["id"], "answers": answer(r["text"])} for r in (rc, rc, plain, plain)]
+    res = tools.golden_submit(session, items)
+    assert res["accepted"] == 2 and res["rechecked"] == 0 and res["agreed"] == 0
+    assert [e["error"] for e in res["rejected"]] == [
+        "already answered; to change a label, edit golden.csv after --finish"
+    ] * 2
+
+
+def test_a_retry_after_a_timeout_is_rejected_and_batches_are_stable(tmp_path):
+    session, _ = start(tmp_path, 20)
+    ids = first_pass(session)
+    again = tools.golden_submit(session, [{"id": i, "answers": answer(t)} for t, i in ids.items()])
+    assert again["accepted"] == 0 and again["rechecked"] == 0
+    assert {e["error"] for e in again["rejected"]} == {
+        "already answered; to change a label, edit golden.csv after --finish"
+    }
+    b1, b2 = tools.golden_batch(session, 100), tools.golden_batch(session, 100)
+    assert b1["items"] == b2["items"] and len(b1["items"]) == len(recheck_rows(session))
+    item = b1["items"][0]
+    sent = [{"id": item["id"], "answers": answer(item["text"])}]
+    assert tools.golden_submit(session, sent)["accepted"] == 1
+    retry = tools.golden_submit(session, sent)
+    assert retry["accepted"] == 0 and "already answered" in retry["rejected"][0]["error"] and retry["rechecked"] == 1
+
+
+def test_pass_one_ids_are_refused_while_second_answers_are_due(tmp_path):
+    session, _ = start(tmp_path, 20)
+    ids = first_pass(session)
+    due = tools.golden_batch(session, 100)["items"]
+    assert due and not {i["id"] for i in due} & set(ids.values())
+    res = tools.golden_submit(session, [{"id": ids[i["text"]], "answers": answer(i["text"])} for i in due])
+    assert res["accepted"] == 0 and res["rechecked"] == 0 and res["to_recheck"] == len(due)
+
+
+def test_second_answer_ids_are_random_and_look_like_row_ids(tmp_path):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    a, _ = start(tmp_path / "a", 20)
+    b, _ = start(tmp_path / "b", 20)
+    for session in (a, b):
+        first_pass(session)
+        tools.golden_batch(session, 100)
+    ra, rb = recheck_rows(a), recheck_rows(b)
+    assert [r["id"] for r in ra] == [r["id"] for r in rb]
+    assert not {r["check_id"] for r in ra} & {r["check_id"] for r in rb}
+    for r in ra + rb:
+        assert r["check_id"] != r["id"] and r["check_id"][1:] not in golden_session.text_hash(r["text"])
+        assert r["check_id"].startswith("g") and len(r["check_id"]) == len(r["id"])
+        int(r["check_id"][1:], 16)
+    taken = {"g" + "0" * 12}
+    ids = iter(["0" * 12, "1" * 12])
+    real = golden_session.secrets.token_hex
+    golden_session.secrets.token_hex = lambda n: next(ids)
+    try:
+        assert golden_session._check_id(taken) == "g" + "1" * 12
+    finally:
+        golden_session.secrets.token_hex = real
+
+
+def test_second_answers_are_mixed_in_with_texts_still_waiting(tmp_path):
+    session, _ = start(tmp_path, 60)
+    b = tools.golden_batch(session, 30)
+    tools.golden_submit(session, [{"id": i["id"], "answers": answer(i["text"])} for i in b["items"]])
+    mixed = tools.golden_batch(session, 100)
+    rows = set(rows_ids(session))
+    firsts = [i for i in mixed["items"] if i["id"] in rows]
+    seconds = [i for i in mixed["items"] if i["id"] not in rows]
+    assert len(firsts) == 30 and seconds and "pass" not in mixed
+    assert mixed["remaining"] == len(firsts) + len(seconds)
+    assert {i["text"] for i in seconds} <= {i["text"] for i in b["items"]}
+
+
+def test_a_skip_needs_a_reason(tmp_path):
+    session, _ = start(tmp_path, 6)
+    ids = [i["id"] for i in tools.golden_batch(session)["items"]]
+    res = tools.golden_submit(
+        session, [{"id": ids[0], "skip": None}, {"id": ids[1], "skip": ""}, {"id": ids[2], "skip": 3}]
+    )
+    assert res["accepted"] == 0 and all("a skip needs a reason" in e["error"] for e in res["rejected"])
+
+
+def test_written_examples_close_to_a_test_text_are_rejected(tmp_path):
+    session, _ = start(tmp_path, 30)
+    test = next(r["text"] for r in golden_session.load(session)["rows"] if r["split"] == "test")
+    res = tools.golden_add(
+        session,
+        [
+            {"text": test + " thanks", "answers": answer(test)},
+            {
+                "text": "completely different words about a laptop fan",
+                "answers": {"team": "technical", "wants_refund": False},
+            },
+        ],
+    )
+    assert res["accepted"] == 1 and "shares most of its words with a held-out test text" in res["rejected"][0]["error"]
+
+
+def test_finish_only_writes_next_to_the_session(tmp_path):
+    session, _ = start(tmp_path, 6)
+    first_pass(session)
+    data = golden_session.load(session)
+    assert data["out"] == "golden.csv"
+    for bad in ("../escaped.csv", os.path.join("..", "x.csv"), "sub\\x.csv", "..", "", None):
+        data["out"] = bad
+        golden_session._save(session, data)
+        with pytest.raises(ValueError, match="must be a file name next to the session file"):
+            tools.golden_finish(session)
+    assert not os.path.exists(tmp_path.parent / "escaped.csv")
+
+
 # CLI
 
 
@@ -287,10 +438,10 @@ def test_cli_golden_teacher_agent_and_finish(tmp_path, capsys):
     assert code == cli.INVALID and "--teacher agent" in json.loads(text)["error"]["message"]
 
 
-# evaluate: accuracy per label source
+# evaluate: accuracy on human labels, agreement with agent labels
 
 
-def test_evaluate_reports_accuracy_per_labeller(tmp_path):
+def test_evaluate_reports_agreement_per_labeller(tmp_path):
     rows = [
         {
             "text": t,
@@ -304,8 +455,11 @@ def test_evaluate_reports_accuracy_per_labeller(tmp_path):
     model = ds.model(LABELS, FakeEngine(lambda t: {"label": truth(t)["team"]}, confidence=1.0))
     report = model.evaluate(rows)
     by = report.details["labelled_by"]
-    assert by["human"] == {"decisions": 6, "accuracy": 1.0} and by["agent:claude-code"]["accuracy"] == 5 / 6
-    assert "accuracy by who labelled the rows" in str(report) and "agent:claude-code" in str(report)
+    assert by["human"] == {"decisions": 6, "accuracy": 1.0}
+    assert by["agent:claude-code"] == {"decisions": 6, "agreement": 5 / 6}
+    text = str(report)
+    assert "by who labelled the rows" in text and "accuracy on rows labelled by human: 1.000" in text
+    assert "agreement with agent:claude-code's labels: 0.833" in text
     plain = model.evaluate([{"text": r["text"], "label": r["label"]} for r in rows])
     assert "labelled_by" not in plain.details and "who labelled" not in str(plain)
 
@@ -337,10 +491,23 @@ def test_data_check_finds_repeats_leaks_imbalance_and_bad_values(tmp_path):
     advice = " ".join(got["advice"])
     for part in ("no text", "not options", "only 4 labelled rows", "fewer than 10", "more than once", "differently"):
         assert part in advice, part
-    assert "in the test split and in training" in advice
+    assert "in the test split and in training" in advice and got["near_copies"]["texts"] == 0
     loose = check(str(path))
     assert loose["balance"]["label"]["legal"] == 1 and not loose["invalid"]
     assert "no split=test" not in " ".join(loose["advice"])
+
+
+def test_data_check_flags_near_copies_of_test_texts(tmp_path):
+    path = tmp_path / "d.csv"
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["text", "label", "split"])
+        w.writerow(["my card was charged twice for one order", "billing", "test"])
+        w.writerow(["my card was charged twice for one order thanks", "billing", "train"])
+        w.writerow(["the app crashes when I export a report", "technical", "train"])
+    got = tools.data_check(str(path), labels=LABELS)
+    assert got["near_copies"] == {"texts": 1, "examples": [["d.csv line 2", "d.csv line 3"]]} and not got["ok"]
+    assert any("share at least 80% of their words with a test text" in a for a in got["advice"])
 
 
 def test_data_check_clean_file_and_formats(tmp_path, toy_csv):
@@ -412,14 +579,17 @@ def test_scripted_agent_builds_a_model_end_to_end(tiny, tmp_path, monkeypatch):
     session = started["session"]
     assert started["rows"] == 90 and started["test"] > 0 and session == "golden.session.json"
     first = golden_session.load(session)
-    wrong = [r["id"] for r in first["rows"] if r["recheck"]][:1]
+    wrong = [r["text"] for r in first["rows"] if r["recheck"]][:1]
     while True:
         b = tools.golden_batch(session, 25)
         if not b["items"]:
             break
+        second = second_ids(session)
         team = [truth(i["text"])["team"] for i in b["items"]]
-        if b["pass"] == 2:
-            team = [next(x for x in LABELS if x != t) if i["id"] in wrong else t for i, t in zip(b["items"], team)]
+        team = [
+            next(x for x in LABELS if x != t) if i["id"] in second and i["text"] in wrong else t
+            for i, t in zip(b["items"], team)
+        ]
         tools.golden_submit(session, [{"id": i["id"], "answers": {"label": t}} for i, t in zip(b["items"], team)])
     st = tools.golden_status(session)
     assert st["disagreed"] == 1 and st["labelled"] == 90

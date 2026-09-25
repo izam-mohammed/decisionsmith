@@ -1,5 +1,5 @@
-"""Two fields, every MCP tool: data_check, labelling with skips, synthetic rows re-checked blind, finetune, evaluate,
-save and ds.load."""
+"""Two fields, every MCP tool: data_check, labelling with skips, synthetic rows with a second answer, finetune,
+evaluate, save and ds.load."""
 
 import csv
 from pathlib import Path
@@ -33,8 +33,10 @@ def agent(text):
     return {"team": r["team"], "wants_refund": r["wants_refund"]}
 
 
-def label_until(session, stop_at_pass):
-    while (batch := mcp.golden_batch(session))["items"] and batch["pass"] != stop_at_pass:
+def label_all(session):
+    # a real agent starts a fresh labeler subagent per batch, so a text that comes back for its second answer
+    # (under a new id) is labelled without seeing the first answer
+    while (batch := mcp.golden_batch(session))["items"]:
         answers = [
             {"id": i["id"], "skip": "too short to tell"}
             if len(i["text"].split()) < 5
@@ -45,14 +47,14 @@ def label_until(session, stop_at_pass):
         assert not result["rejected"], result["rejected"]
 
 
-label_until(session, stop_at_pass=2)  # pass 1 only
+label_all(session)
 status = mcp.golden_status(session)
 print("labelled", status["labelled"], "· skipped", status["skipped"], "· balance", status["balance"]["team"])
 
-# 4. short of sales rows? the data-writer adds a few; they are re-checked blind with the rest in pass 2
+# 4. short of sales rows? the data-writer adds a few (shown training rows only); each needs an agreeing second answer
 written = ["What is the price of the team plan?", "Is there a cheaper plan for students?", "Can I get the price list?"]
 mcp.golden_add(session, [{"text": t, "answers": {"team": "sales", "wants_refund": False}} for t in written])
-label_until(session, stop_at_pass=None)  # pass 2: the blind re-check
+label_all(session)
 status = mcp.golden_status(session)
 print("re-checked", status["rechecked"], "· agreement", status["agreement"], "· disagreements", status["disagreements"])
 
@@ -61,7 +63,7 @@ print(mcp.golden_finish(session)["message"])
 trained = mcp.finetune("golden.csv", SCHEMA, out="runs/v1")
 report = mcp.evaluate("runs/v1", "golden.csv", SCHEMA, save="models/ticket")
 print("go:", report["go"], "·", report["reasons"][0])
-print("accuracy by labeller:", report["details"]["labelled_by"])
+print("agreement with each labeller:", report["details"]["labelled_by"])  # "accuracy" only for rows a person labelled
 
 # 6. what the production code loads
 model = ds.load(report["saved"])

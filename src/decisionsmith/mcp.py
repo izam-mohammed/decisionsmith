@@ -171,7 +171,8 @@ def golden_start(
 
 
 def golden_batch(session: str, size: int = 20) -> dict[str, Any]:
-    """The next texts to label with the options and instructions; after pass 1, the blind re-check (pass 2)."""
+    """The next texts to label with the options and instructions. A share of texts comes back under a new id for an
+    independent second answer; give each batch to a fresh labeller that can't see earlier answers."""
     from .golden_session import batch
 
     return batch(session, size)
@@ -179,7 +180,8 @@ def golden_batch(session: str, size: int = 20) -> dict[str, Any]:
 
 def golden_submit(session: str, answers: list[dict[str, Any]], agent: str | None = None) -> dict[str, Any]:
     """Store answers: [{"id": ..., "answers": {field: option}}] or [{"id": ..., "skip": "why"}]. Each is checked
-    against the schema; bad items come back in `rejected` with the reason. `agent` names you, e.g. claude-code."""
+    against the schema and each id takes one answer; bad items come back in `rejected` with the reason. `agent`
+    names you, e.g. claude-code."""
     from .golden_session import submit
 
     return submit(session, answers, agent)
@@ -187,7 +189,8 @@ def golden_submit(session: str, answers: list[dict[str, Any]], agent: str | None
 
 def golden_add(session: str, examples: list[dict[str, Any]], agent: str | None = None) -> dict[str, Any]:
     """Add examples you wrote when real data is short: [{"text": ..., "answers": {field: option}}]. They are marked
-    synthetic, never used as test rows, and count only after the blind re-check agrees."""
+    synthetic, train rows only, and count only after a second, independent answer agrees. A text that repeats a
+    session text or shares 80% or more of its words with a test text is rejected."""
     from .golden_session import add
 
     return add(session, examples, agent)
@@ -201,14 +204,16 @@ def golden_status(session: str) -> dict[str, Any]:
 
 
 def golden_finish(session: str, out: str | None = None, overwrite: bool = False) -> dict[str, Any]:
-    """Write golden.csv from the session (same format as an LLM-labelled one, plus a `checked` column)."""
+    """Write golden.csv from the session (same format as an LLM-labelled one, plus a `checked` column). The session
+    is then finished: no more batches, answers or examples."""
     from .golden_session import finish
 
     return finish(session, out, overwrite)
 
 
 def data_check(path: str, schema: Any = None, labels: list[str] | None = None) -> dict[str, Any]:
-    """Check a data file before training: counts per option, repeated texts, test/train leaks, lengths, advice.
+    """Check a data file before training: counts per option, repeated texts, test/train leaks and near copies
+    (training texts sharing 80% or more of their words with a test text), lengths, advice.
     Without schema/labels every column other than id/text/split/labelled_by is read as a field."""
     from .checks import check
 
@@ -225,8 +230,9 @@ def evaluate(
     save: str | None = None,
 ) -> dict[str, Any]:
     """Evaluate a saved model folder, or a checkpoint (e.g. finetune's runs/v1, with schema or labels), on labelled
-    data (split=test rows of a golden.csv): per field numbers, accuracy by who labelled, go/no-go. `save`
-    (e.g. models/ticket) then writes the next versioned model folder with its thresholds and this report."""
+    data (split=test rows of a golden.csv): per field numbers, and by who labelled the rows (accuracy on rows a
+    person labelled, agreement with an agent's or LLM's labels), go/no-go. `save` (e.g.
+    models/ticket) then writes the next versioned model folder with its thresholds and this report."""
     from .artifact import META
     from .predictor import Model, load
 
@@ -324,8 +330,9 @@ def server() -> Any:
         "decisionsmith",
         instructions="Decisions (classify, route, screen, score) with an LLM or Jev as teacher and Laya as a fast "
         "student. Ask the user before calling paid engines or sending data to hosted ones. To build a model "
-        "yourself: golden_start, then golden_batch / golden_submit until done (pass 2 is a blind re-check), "
-        "golden_finish, finetune, evaluate (with save=...). Quote measured numbers only; flag synthetic data.",
+        "yourself: golden_start, then golden_batch / golden_submit until done (a share of texts comes back under "
+        "new ids for an independent second answer; use a fresh labeller per batch), golden_finish, finetune, "
+        "evaluate (with save=...). Quote measured numbers only; flag synthetic data.",
     )
     for fn in TOOLS:
         app.tool()(fn)

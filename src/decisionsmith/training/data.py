@@ -50,6 +50,19 @@ def text_hash(text: Any) -> str:
     return hashlib.sha256(same_text(text).encode()).hexdigest()[:16]
 
 
+NEAR = 0.8
+
+
+def words_of(text: Any) -> frozenset[str]:
+    """The lowercased words of a text, for `near_copy`."""
+    return frozenset(same_text(text).split())
+
+
+def near_copy(a: frozenset[str], b: frozenset[str]) -> bool:
+    """Two texts share at least `NEAR` (80%) of their words (Jaccard over lowercased words)."""
+    return bool(a and b) and len(a & b) >= NEAR * len(a | b)
+
+
 def _formula(value: str) -> bool:
     return value.startswith(FORMULA) or (len(value) > 1 and value[0] == "'" and value[1] in FORMULA)
 

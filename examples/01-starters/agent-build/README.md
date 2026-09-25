@@ -1,6 +1,6 @@
 # Build a model with a coding agent
 
-A coding agent labels the golden set itself through the MCP tools (no LLM API key), with a blind re-check, then trains, evaluates and saves; here a scripted stand-in plays the agent.
+A coding agent labels the golden set itself through the MCP tools (no LLM API key), with a second, independent answer on a share of the rows, then trains, evaluates and saves; here a scripted stand-in plays the agent.
 
 ```python
 """The minimal agent flow: ds.golden(teacher="agent") -> the agent labels through the MCP tools -> train -> evaluate."""
@@ -21,20 +21,20 @@ ds.golden([r["text"] for r in rows], teacher="agent:claude-code", schema=labels,
 # a scripted stand-in for the coding agent: it answers from the toy file's labels, where a real agent reads the text
 known = {r["text"]: r["team"] for r in rows}
 session = "golden.session.json"
-while (batch := mcp.golden_batch(session))["items"]:  # pass 1, then the blind re-check (pass 2)
+while (batch := mcp.golden_batch(session))["items"]:  # a share of texts comes back under new ids for a second answer
     mcp.golden_submit(session, [{"id": i["id"], "answers": {"label": known[i["text"]]}} for i in batch["items"]])
 print(mcp.golden_finish(session)["message"])  # writes golden.csv
 
 model = ds.model(labels)
 model.train("golden.csv")  # split=test rows are held out
-print(model.evaluate("golden.csv"))  # accuracy by who labelled the rows is at the end
+print(model.evaluate("golden.csv"))  # ends with the agreement with the agent's labels
 ```
 
 | file | what it shows |
 |---|---|
 | [`cli.py`](cli.py) | The same flow from the command line: `decisionsmith golden --teacher agent`, the agent labels, `--finish`, train, |
 | [`main.py`](main.py) | The minimal agent flow: ds.golden(teacher="agent") -> the agent labels through the MCP tools -> train -> evaluate. |
-| [`realistic.py`](realistic.py) | Two fields, every MCP tool: data_check, labelling with skips, synthetic rows re-checked blind, finetune, evaluate, |
+| [`realistic.py`](realistic.py) | Two fields, every MCP tool: data_check, labelling with skips, synthetic rows with a second answer, finetune, |
 
 ## Run
 

@@ -1,4 +1,4 @@
-"""`data_check`: what to fix in a data file before training on it (balance, repeats, leaks, lengths)."""
+"""`data_check`: what to fix in a data file before training on it (balance, repeats, leaks, near copies, lengths)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 
 from .evaluation import MIN_PER_OPTION
 from .schema import Schema
-from .training.data import MIN_ROWS, _records, _split_of, same_text
+from .training.data import MIN_ROWS, NEAR, _records, _split_of, near_copy, same_text, words_of
 
 NOT_FIELDS = {"id", "text", "split", "labelled_by", "checked", "group", "answers", "_csv"}
 SHORT_WORDS = 3
@@ -23,8 +23,9 @@ def _values(rec: dict[str, Any], schema: Schema | None) -> dict[str, Any]:
 
 
 def check(data: str | os.PathLike[str], schema: Schema | None = None) -> dict[str, Any]:
-    """Counts per option, repeated texts (and ones labelled differently), texts in both train and test, lengths,
-    who labelled the rows, and advice. Without a schema, every column other than id/text/split/labelled_by is a field.
+    """Counts per option, repeated texts (and ones labelled differently), texts in both train and test, training
+    texts that share at least 80% of their words with a test text, lengths, who labelled the rows, and advice.
+    Without a schema, every column other than id/text/split/labelled_by is a field.
     """
     records = [(where, rec) for where, rec in _records(data) if isinstance(rec, dict)]
     texts = [(where, rec, rec.get("text")) for where, rec in records]
@@ -48,9 +49,15 @@ def check(data: str | os.PathLike[str], schema: Schema | None = None) -> dict[st
     repeats = {k: v for k, v in by_text.items() if len(v) > 1}
     conflicts = [k for k, v in repeats.items() if len({tuple(sorted(x[1].items())) for x in v if x[1]}) > 1]
     leaks = [k for k, v in by_text.items() if _mixed(v)]
+    near = _near(by_text)
     words = sorted(len(t.split()) for _, _, t in usable)
     splits = Counter(_split_of(r, w) or "none" for w, r, _ in usable)
     advice = _advice(balance, schema, invalid, labelled, repeats, conflicts, leaks, splits, len(texts) - len(usable))
+    if near:
+        advice.append(
+            "%d training texts share at least %d%% of their words with a test text (near copies), so evaluation "
+            "would be optimistic; remove or rewrite them" % (len(near), NEAR * 100)
+        )
     options = {n: dict(sorted(c.items())) for n, c in balance.items()}
     if schema:
         options = {n: {k: balance.get(n, Counter())[k] for k in f.labels} for n, f in schema.fields.items()}
@@ -70,6 +77,7 @@ def check(data: str | os.PathLike[str], schema: Schema | None = None) -> dict[st
             "examples": [[w for w, _, _ in repeats[k]] for k in (conflicts + list(repeats))[:EXAMPLES]],
         },
         "leaks": {"texts": len(leaks), "examples": [[w for w, _, _ in by_text[k]] for k in leaks[:EXAMPLES]]},
+        "near_copies": {"texts": len(near), "examples": near[:EXAMPLES]},
         "lengths": {
             "min_words": words[0] if words else 0,
             "median_words": median(words) if words else 0,
@@ -84,6 +92,22 @@ def check(data: str | os.PathLike[str], schema: Schema | None = None) -> dict[st
 def _mixed(rows: list[tuple[str, dict[str, str], str]]) -> bool:
     kinds = {x[2] or "train" for x in rows}
     return "test" in kinds and len(kinds) > 1
+
+
+def _near(by_text: dict[str, list[tuple[str, dict[str, str], str]]]) -> list[list[str]]:
+    """[test row, training row] for each training text that is a near copy (not an exact one) of a test text."""
+    test: list[tuple[str, str, frozenset[str]]] = []
+    train: list[tuple[str, str, frozenset[str]]] = []
+    for key, rows in by_text.items():
+        words = words_of(key)
+        for where, _, split in rows:
+            (test if split == "test" else train).append((where, key, words))
+    found = []
+    for where, key, words in train:
+        hit = next((w for w, k, t in test if k != key and near_copy(words, t)), None)
+        if hit:
+            found.append([hit, where])
+    return found
 
 
 def _advice(
