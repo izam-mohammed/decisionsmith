@@ -15,8 +15,10 @@ print(report)  # per field: decisions, accuracy, macro-F1, ECE, threshold, cover
 print(report.go, report.reasons)
 ```
 
-Keep the test rows out of training. With a golden dataset from `ds.golden`, rows marked `split=test` are the
-held-out slice.
+Test on rows the model never trained on. A file with a `split` column (such as the `golden.csv` that `ds.golden`
+writes) is handled for you: `model.train()` never trains on `split=test` rows, and `model.evaluate()` uses only
+them. A trained model also records one-way fingerprints of its training texts (short hashes, never the texts), so
+`evaluate` counts any test text it trained on, lists it first in `report.reasons` and sets `go` to false.
 
 ## What you get
 
@@ -44,6 +46,7 @@ else the LLM does).
 ## Go / no-go
 
 `go` is true only when all of these hold; every failed one is in `report.reasons`:
+- no test text was in the training data
 - at least 100 test decisions, and every option has at least 10 test rows
 - calibration error (ECE) is at most 0.10 per field
 - every field has a threshold that reaches `target` accuracy
@@ -54,6 +57,15 @@ else the LLM does).
 |---|---|
 | `only 40 test decisions; want at least 100` | label more held-out rows; the numbers are too rough to trust |
 | `no confidence level reaches 97% accuracy` | train on more (or cleaner) data, or lower `target`; until then cascade sends that field to the LLM |
+| `12 of 200 test texts were in the training data` | evaluate on rows the model never saw; with `ds.golden`, keep the `split` column |
 | `no labelled rows to evaluate` | the file needs a `text` column and a label column per field (`label` for a labels model) |
+
+<a id="same-text"></a>
+## What counts as the same text
+
+Two texts are the same when they match after Unicode NFKC normalisation, case folding, dropping punctuation and
+collapsing spaces: `"Refund, please!"` and `"refund please"` are the same; `"refund"` and `"refunds"` are not. A
+model retrained from a saved model keeps the fingerprints of both rounds of training. The fingerprints are 16 hex
+characters of a SHA-256 hash; see [collect](collect.md) for what that means for privacy.
 
 **Next:** [save and load](save-and-load.md).

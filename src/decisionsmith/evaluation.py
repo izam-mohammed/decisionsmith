@@ -19,9 +19,23 @@ if TYPE_CHECKING:
 MIN_DECISIONS, MIN_PER_OPTION, MAX_ECE = 100, 10, 0.10
 
 
+def training_hashes(model: Model) -> set[str]:
+    """Fingerprints of the texts the model was trained on, from its checkpoint's provenance (empty if unknown)."""
+    import json
+    import os
+
+    folders = [model.trained, model.path, getattr(model.engine, "model_id", None)]
+    for folder in [f for f in folders if isinstance(f, str)]:
+        cfg = os.path.join(folder, "rl_agent_config.json")
+        if os.path.exists(cfg):
+            with open(cfg, encoding="utf-8") as f:
+                return set((json.load(f).get("decisionsmith") or {}).get("text_hashes") or [])
+    return set()
+
+
 def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     schema = model.schema
-    rows = data_mod.load(model._rows(data), schema)
+    rows = data_mod.load(model._rows(data), schema, split="test")
     if not rows:
         raise ValueError("no labelled rows to evaluate; give text plus a label per field")
     questions = schema.questions()
@@ -95,9 +109,24 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     total = sum(r.get("decisions", 0) for r in table)
     if total < MIN_DECISIONS:
         reasons.insert(0, "only %d test decisions; want at least %d (add data)" % (total, MIN_DECISIONS))
+    seen = training_hashes(model)
+    overlap = sum(data_mod.text_hash(r.text) in seen for r in rows)
+    if overlap:
+        reasons.insert(
+            0,
+            "%d of %d test texts were in the training data, so these numbers are optimistic; evaluate on rows the "
+            "model never saw (a golden.csv keeps them apart with split=test)" % (overlap, len(rows)),
+        )
     go = not reasons
     worst.sort(key=lambda w: -w["confidence"])
-    details = {"fields": fields, "worst": worst[:10], "ms_per_text": ms, "target": target, "rows": len(rows)}
+    details = {
+        "overlap": overlap,
+        "fields": fields,
+        "worst": worst[:10],
+        "ms_per_text": ms,
+        "target": target,
+        "rows": len(rows),
+    }
     title = "evaluate: %s on %d rows" % (model.name, len(rows))
     report = Report("evaluate", title, table, go=go, reasons=reasons or ["ready for the harness"], details=details)
     model.report = report

@@ -103,6 +103,10 @@ print(model.evaluate("test.csv"))  # held-out numbers and go/no-go
 m = ds.load(model.save("models/ticket"))  # models/ticket-v1
 ```
 
+In production, `ds.harness(m, teacher=llm, collect=0.1)` keeps a sample of real texts, and
+`ds.golden("decisions.db", teacher=llm, schema=labels)` turns them into the next labelled dataset
+([golden](docs/golden.md), [collect](docs/collect.md)).
+
 ## Compare engines on your data
 
 ```bash

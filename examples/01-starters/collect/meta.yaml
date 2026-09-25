@@ -1,0 +1,3 @@
+title: Collect real samples
+summary: collect= keeps a sample of real texts in the log for the next golden dataset; h.forget deletes on request.
+needs: [laya, anthropic]

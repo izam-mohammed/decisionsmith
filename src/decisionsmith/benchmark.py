@@ -61,9 +61,13 @@ def bench(
     limit: int | None = None,
     out: str | None = None,
 ) -> Report:
-    """Run each engine zero-shot on labelled data (CSV/JSONL) and compare them field by field."""
+    """Run each engine zero-shot on labelled data (CSV/JSONL) and compare them field by field.
+
+    With a `split` column (a golden dataset) only the `split=test` rows are used, so a model trained on the rest is
+    compared fairly; without one, every row is used.
+    """
     compiled = compile_schema(schema)
-    rows = [r for r in data_mod.load(data, compiled) if isinstance(r.text, str)]
+    rows = [r for r in data_mod.load(data, compiled, split="test") if isinstance(r.text, str)]
     if limit:
         rows = rows[:limit]
     if not rows:

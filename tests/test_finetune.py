@@ -41,6 +41,9 @@ def test_finetune_writes_a_laya_checkpoint(tiny, toy_csv, tmp_path):
     assert cfg["fine_tuned"] is True and len(cfg["temperature"]) == 3 and "temperature_by_options" not in cfg
     assert cfg["decisionsmith"]["train"] == "head" and cfg["decisionsmith"]["rows"]["test"] == 9
     assert cfg["decisionsmith"]["schema"]["name"] == "Ticket" and cfg["max_len"] == 64
+    assert len(cfg["decisionsmith"]["text_hashes"]) == 60 and all(
+        len(h) == 16 for h in cfg["decisionsmith"]["text_hashes"]
+    )
     agent = laya.load(str(out), device="cpu")
     assert agent.predict("you charged me twice", ds.harness(Ticket, teacher="fake", log=None).schema.questions())
     assert rep.go is False and any("want 100" in r for r in rep.reasons)
