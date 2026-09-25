@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import types
 
@@ -64,7 +65,8 @@ def test_train_predict_save_load(tiny, tmp_path, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "trained on 45 rows" in out and "rough" in out and rep.kind == "finetune"
     if m.trained:
-        assert m.trained == "runs/label-v1" and m.name == "laya:runs/label-v1"
+        run = os.path.join("runs", "label-v1")
+        assert m.trained == run and m.name == "laya:%s" % run
         m.save(str(tmp_path / "saved"))
         assert (tmp_path / "saved" / "model.safetensors").exists()
         assert not (tmp_path / "saved" / "checkpoint_latest").exists()
@@ -127,19 +129,14 @@ def test_label_with_teacher(tiny, monkeypatch, capsys):
     import decisionsmith.training.finetuning as fmod
 
     seen = {}
-    monkeypatch.setattr(
-        fmod,
-        "finetune",
-        lambda rows, *a, **k: (
-            seen.setdefault("rows", rows)
-            and ds.Report(
-                "finetune",
-                "x",
-                [],
-                details={"base": {"all": {}}, "finetuned": {"all": {}}, "provenance": {"rows": {"train": 1}}},
-            )
-        ),
-    )
+
+    def fake(rows, *a, out, **k):
+        os.makedirs(out, exist_ok=True)
+        seen.setdefault("rows", rows)
+        details = {"base": {"all": {}}, "finetuned": {"all": {}}, "provenance": {"rows": {"train": 1}}}
+        return ds.Report("finetune", "x", [], details=details)
+
+    monkeypatch.setattr(fmod, "finetune", fake)
     m = ds.model(LABELS, str(tiny))
 
     class Flaky(FakeEngine):
