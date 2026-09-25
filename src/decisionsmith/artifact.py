@@ -148,10 +148,12 @@ def _portable(base: Any) -> Any:
     (`org/repo`) stay. Decided from the value alone, never from what exists in the current folder."""
     if not isinstance(base, str) or not base:
         return base
+    if path_like(base):
+        return folder_name(base)
     kind, sep, rest = base.partition(":")
     if sep and kind == "laya" and rest:
         return "laya:%s" % _portable(rest)
-    return folder_name(base) if path_like(base) else base
+    return base
 
 
 def _portable_training(training: dict[str, Any]) -> dict[str, Any]:
@@ -173,10 +175,12 @@ def _shown_path(path: str) -> str:
 
 
 def _clean_token(token: str) -> str:
+    if path_like(token):
+        return folder_name(token)
     kind, sep, rest = token.partition(":")
     if sep and rest and path_like(rest):
         return "%s:%s" % (kind, folder_name(rest))
-    return folder_name(token) if path_like(token) else token
+    return token
 
 
 def _public(report: dict[str, Any]) -> dict[str, Any]:
