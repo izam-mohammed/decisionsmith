@@ -1,0 +1,5 @@
+title: Pydantic AI
+summary: Any Pydantic AI model as the teacher (OpenAI, Claude, Gemini, Groq, Mistral, Bedrock, Ollama), and a tool, an output validator and an agent router backed by your model.
+needs: [pydantic-ai, laya]
+imports: [pydantic_ai]
+pip: ["pydantic-ai-slim[openai,anthropic,google,groq,mistral,bedrock]"]

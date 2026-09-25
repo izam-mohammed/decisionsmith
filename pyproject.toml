@@ -36,6 +36,10 @@ openai = ["openai>=1.40"]
 instructor = ["instructor>=1.10"]
 llm-plugin = ["llm>=0.26"]
 outlines = ["outlines>=1.0; python_version < '3.14'"]
+langgraph = ["langgraph>=1.0"]
+openai-agents = ["openai-agents>=0.20"]
+claude-agent-sdk = ["claude-agent-sdk>=0.2"]
+google-adk = ["google-adk>=2.0"]
 
 [project.scripts]
 decisionsmith = "decisionsmith.cli:main"

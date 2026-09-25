@@ -17,6 +17,12 @@
   `integrations.instructor` (`wrap`), `integrations.portkey` (webhook guardrail), `integrations.llm_plugin`
   (`llm decide` command, `llm` models as teachers), `integrations.outlines` (Outlines models as teachers) and
   `integrations.marvin` (`classify` drop-in), with examples for every built-in and LiteLLM provider.
+- Agent frameworks: `integrations.langchain` (`DecisionRunnable`, `as_tool`, `output_parser`, `compressor`),
+  `integrations.langgraph` (`route_on`, `guard_node`), `integrations.pydantic_ai` (`tool`, `output_validator`,
+  `router`), `integrations.openai_agents` (input / output guardrails, `function_tool`, `router`, model teacher),
+  `integrations.claude_agent_sdk` (`PreToolUse` / `PostToolUse` hooks), `integrations.llamaindex`
+  (`relevance_filter`, `selector`, `as_tool`) and `integrations.google_adk` (`tool`, `before_model_callback` guard),
+  with teacher examples for every provider each framework supports.
 - Async: `h.adecide()`, `h.acall()`, `model.apredict()` (native async for HTTP engines).
 - `DS_OFFLINE=1` / `DS_LAYA=<dir>`: run anything without keys or network, for examples, notebooks and demos.
 - Examples move to `examples/<group>/<name>/` with a generated README each and a generated gallery; CI runs every

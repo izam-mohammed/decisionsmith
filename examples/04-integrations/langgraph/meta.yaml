@@ -1,0 +1,4 @@
+title: LangGraph
+summary: Route a graph's conditional edges on a decision (route_on) and block unsafe input with a guard node.
+needs: [langgraph, laya, anthropic]
+imports: [langgraph]

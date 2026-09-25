@@ -1,0 +1,4 @@
+title: Google ADK
+summary: A decision as an ADK FunctionTool, and a before_model_callback guard that answers instead of Gemini when a request is blocked.
+needs: [google-adk, laya]
+imports: [google.adk]

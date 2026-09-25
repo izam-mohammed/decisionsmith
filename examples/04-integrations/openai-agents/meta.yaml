@@ -1,0 +1,5 @@
+title: OpenAI Agents SDK
+summary: Input and output guardrails, a function tool and a router backed by your model, and any Agents SDK model (OpenAI, LiteLLM) as the teacher.
+needs: [openai-agents, laya]
+imports: [agents]
+pip: ["openai-agents[litellm]"]

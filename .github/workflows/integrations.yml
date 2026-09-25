@@ -11,10 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [litellm, openai, instructor, portkey, llm-plugin, outlines, marvin, langchain, llamaindex, dspy, crewai, pydantic-ai, haystack, smolagents, autogen, semantic-kernel]
+        name: [litellm, openai, instructor, portkey, llm-plugin, outlines, marvin, langchain, llamaindex, dspy, crewai, pydantic-ai, haystack, smolagents, autogen, semantic-kernel, langgraph, openai-agents, claude-agent-sdk, google-adk]
     runs-on: ubuntu-latest
     env:
       HF_HUB_OFFLINE: "1"
+      MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

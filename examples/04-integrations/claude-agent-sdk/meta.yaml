@@ -1,0 +1,4 @@
+title: Claude Agent SDK
+summary: PreToolUse / PostToolUse hooks where a decision denies a risky tool call or flags a tool's output.
+needs: [claude-agent-sdk, laya, anthropic]
+imports: [claude_agent_sdk]

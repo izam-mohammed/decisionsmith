@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import pytest
