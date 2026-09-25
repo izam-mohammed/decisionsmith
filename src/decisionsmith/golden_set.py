@@ -3,21 +3,32 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 import random
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from .engines import from_string, response
+from .engines import EngineError, from_string, response
 from .files import parent
 from .schema import Distribution, Schema, compile_schema, confidence, top
+from .training.data import safe_cell, same_text, text_hash
 
 STRATEGIES = ("uncertain", "disagree", "diverse", "random")
+GIVE_UP_AFTER = 5
 
 
 class _Candidate:
-    def __init__(self, text: str, student: dict[str, Distribution] | None, teacher: dict[str, Distribution] | None):
+    def __init__(
+        self,
+        text: str,
+        student: dict[str, Distribution] | None,
+        teacher: dict[str, Distribution] | None,
+        human: dict[str, str] | None = None,
+        trained: bool = False,
+    ) -> None:
         self.text, self.student, self.teacher = text, student, teacher
+        self.human, self.trained = human or {}, trained
 
     def doubt(self) -> float:
         return min((confidence(d) for d in self.student.values()), default=1.0) if self.student else 1.0
@@ -61,19 +72,22 @@ def _candidates(source: Any, schema: Schema, student: Any) -> list[_Candidate]:
     log_path = source.log.path if isinstance(source, Harness) and source.log else None
     if isinstance(source, Harness) and log_path is None:
         raise ValueError("this harness has log=None, so there are no samples; give it a log path")
-    if isinstance(source, (str, os.PathLike)) and os.fspath(source).endswith(".db"):
+    if isinstance(source, (str, os.PathLike)) and os.fspath(source).lower().endswith(".db"):
         log_path = os.fspath(source)
         if not os.path.exists(log_path):
             raise FileNotFoundError("no log at %s; run a harness with log=%r first" % (log_path, log_path))
     if log_path is not None:
         with Log(log_path) as log:
             rows = [r for r in log.rows(schema.name) if r["text"]]
+            trained = log.trained()
         if not rows:
             raise ValueError(
                 "%s has no %s decisions with text; the harness keeps text for collected rows (collect=...)"
                 % (log_path, schema.name)
             )
-        return [_Candidate(r["text"], r["student_dists"], r["teacher_dists"]) for r in rows]
+        return [
+            _Candidate(r["text"], r["student_dists"], r["teacher_dists"], r["labels"], r["id"] in trained) for r in rows
+        ]
     texts = _texts(source)
     if not texts:
         raise ValueError("no texts to choose from; give a harness log (.db), a CSV/JSONL/.txt of texts, or a list")
@@ -109,6 +123,57 @@ def _choose(pool: list[_Candidate], n: int, strategy: str, rng: random.Random) -
     return out[:n]
 
 
+def _check_out(out: str | None, overwrite: bool) -> None:
+    if out is None:
+        return
+    if not out.lower().endswith((".csv", ".jsonl")):
+        raise ValueError("out must end in .csv (easy to review) or .jsonl, got %r" % out)
+    if os.path.exists(out) and not overwrite:
+        raise FileExistsError(
+            "%s already exists and may hold your review; pass overwrite=True (CLI: --overwrite) or another out" % out
+        )
+
+
+def _label_all(
+    chosen: list[_Candidate], engine: Any, schema: Schema
+) -> tuple[list[tuple[_Candidate, dict[str, Distribution], str]], int, str | None]:
+    questions = schema.questions()
+    name = "llm:%s" % engine.name
+
+    def one(c: _Candidate) -> tuple[dict[str, Distribution] | None, str | None]:
+        human = {k: v for k, v in c.human.items() if k in schema.fields}
+        if human and set(human) == set(schema.fields):
+            return {n: {k: float(k == v) for k in schema.fields[n].labels} for n, v in human.items()}, "human"
+        try:
+            got = schema.distributions(response(engine, engine.ask(c.text, questions), questions)[0])
+        except Exception as e:
+            return None, str(e).splitlines()[0] if isinstance(e, EngineError) else "%s: %s" % (type(e).__name__, e)
+        for n, v in human.items():
+            got[n] = {k: float(k == v) for k in schema.fields[n].labels}
+        return got, name + ("+human" if human else "")
+
+    done: list[tuple[_Candidate, dict[str, Distribution], str]] = []
+    failed, first_error = 0, None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for start in range(0, len(chosen), 8):
+            batch = chosen[start : start + 8]
+            for c, (answers, by) in zip(batch, pool.map(one, batch)):
+                if answers is None:
+                    failed += 1
+                    first_error = first_error or by
+                else:
+                    done.append((c, answers, str(by)))
+            if not done and failed >= GIVE_UP_AFTER:
+                break
+    if not done:
+        raise EngineError(
+            engine.name,
+            "could not label any of the %d texts tried; first error: %s" % (failed, first_error),
+            "check the teacher with `decisionsmith doctor --engines %s`" % engine.name,
+        )
+    return done, failed, first_error
+
+
 def golden(
     source: Any,
     teacher: Any,
@@ -118,6 +183,7 @@ def golden(
     schema: Any = None,
     test: float = 0.2,
     out: str | None = "golden.csv",
+    overwrite: bool = False,
     seed: int = 0,
     verbose: bool = True,
 ) -> list[dict[str, Any]]:
@@ -128,10 +194,11 @@ def golden(
         raise ValueError("n must be at least 1")
     if not 0.0 <= test < 1.0:
         raise ValueError("test is the share of rows held out for evaluation, in [0, 1); got %r" % test)
+    _check_out(out, overwrite)
     compiled, student = _schema_and_student(schema, source)
     firsts: dict[str, _Candidate] = {}
     for c in _candidates(source, compiled, student):
-        firsts.setdefault(" ".join(c.text.lower().split()), c)
+        firsts.setdefault(same_text(c.text), c)
     pool = list(firsts.values())
     has_student = any(c.student for c in pool)
     if strategy in ("uncertain", "disagree") and not has_student:
@@ -141,41 +208,33 @@ def golden(
         )
     rng = random.Random(seed)
     chosen = _choose(pool, n, strategy, rng)
-    questions = compiled.questions()
-
-    def label(c: _Candidate) -> dict[str, Distribution] | None:
-        try:
-            return compiled.distributions(response(engine, engine.ask(c.text, questions), questions)[0])
-        except Exception:
-            return None
-
-    with ThreadPoolExecutor(max_workers=8) as pool_:
-        answers = list(pool_.map(label, chosen))
-    labelled = [(c, a) for c, a in zip(chosen, answers) if a is not None]
-    order = list(range(len(labelled)))
-    rng.shuffle(order)
-    held = set(order[: round(test * len(labelled))])
+    labelled, failed, first_error = _label_all(chosen, engine, compiled)
+    eligible = [i for i, (c, _, _) in enumerate(labelled) if not c.trained]
+    rng.shuffle(eligible)
+    k = round(test * len(labelled))
+    if test > 0 and len(labelled) >= 2:
+        k = min(max(1, k), len(labelled) - 1)
+    held = set(eligible[:k])
     rows = [
         {
-            "id": "g%04d" % i,
+            "id": "g" + text_hash(c.text)[:12],
             "text": c.text,
             "answers": a,
             "split": "test" if i in held else "train",
-            "labelled_by": engine.name,
+            "labelled_by": by,
         }
-        for i, (c, a) in enumerate(labelled)
+        for i, (c, a, by) in enumerate(labelled)
     ]
     if out:
         _write(rows, out, compiled)
     if verbose:
-        failed = len(chosen) - len(labelled)
         print(
             "golden: %d rows (%s) labelled by %s%s · %d marked split=test%s"
             % (
                 len(rows),
                 strategy,
                 engine.name,
-                " · %d could not be labelled" % failed if failed else "",
+                " · %d could not be labelled (first error: %s)" % (failed, first_error) if failed else "",
                 len(held),
                 " · wrote %s; review it, then train on it" % out if out else "",
             )
@@ -184,17 +243,22 @@ def golden(
 
 
 def _write(rows: list[dict[str, Any]], path: str, schema: Schema) -> None:
-    fields = list(schema.fields)
-    with open(parent(path), "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["id", "text", *fields, "split", "labelled_by"])
-        w.writeheader()
-        for r in rows:
-            w.writerow(
-                {
-                    "id": r["id"],
-                    "text": r["text"],
-                    **{k: top(v) for k, v in r["answers"].items()},
-                    "split": r["split"],
-                    "labelled_by": r["labelled_by"],
-                }
-            )
+    tmp = parent(path) + ".tmp"
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
+        if path.lower().endswith(".jsonl"):
+            for r in rows:
+                rec = {**r, "answers": {k: top(v) for k, v in r["answers"].items()}}
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        else:
+            w = csv.DictWriter(f, fieldnames=["id", "text", *schema.fields, "split", "labelled_by"])
+            w.writeheader()
+            for r in rows:
+                cells = {"id": r["id"], "text": r["text"], **{k: top(v) for k, v in r["answers"].items()}}
+                w.writerow(
+                    {
+                        **{k: safe_cell(v) for k, v in cells.items()},
+                        "split": r["split"],
+                        "labelled_by": r["labelled_by"],
+                    }
+                )
+    os.replace(tmp, path)

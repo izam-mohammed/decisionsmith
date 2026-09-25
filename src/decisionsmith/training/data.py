@@ -29,13 +29,36 @@ class Row:
 
 
 SPLITS = ("train", "calib", "test")
+ALIASES = {"dev": "calib", "val": "calib", "valid": "calib", "validation": "calib"}
+FORMULA = ("=", "+", "-", "@")
+
+
+def same_text(text: Any) -> str:
+    """The form two texts must share to count as the same: NFKC, case-folded, punctuation dropped, spaces collapsed."""
+    import unicodedata
+
+    folded = unicodedata.normalize("NFKC", str(text)).casefold()
+    kept = "".join(" " if unicodedata.category(ch).startswith("P") else ch for ch in folded)
+    return " ".join(kept.split())
 
 
 def text_hash(text: Any) -> str:
-    """A short, one-way fingerprint of a text (case and spacing ignored): provenance without storing the text."""
+    """A short, one-way fingerprint of a text (see `same_text`): provenance without storing the text."""
     import hashlib
 
-    return hashlib.sha256(" ".join(str(text).lower().split()).encode()).hexdigest()[:16]
+    return hashlib.sha256(same_text(text).encode()).hexdigest()[:16]
+
+
+def safe_cell(value: str) -> str:
+    """Quote a CSV cell a spreadsheet would run as a formula (`=`, `+`, `-`, `@` first)."""
+    return "'" + value if value.startswith(FORMULA) else value
+
+
+def unsafe_cell(value: Any) -> Any:
+    """Undo `safe_cell` when reading a CSV back."""
+    if isinstance(value, str) and len(value) > 1 and value[0] == "'" and value[1] in FORMULA:
+        return value[1:]
+    return value
 
 
 class DataError(ValueError):
@@ -124,9 +147,10 @@ def _records(data: Any) -> Iterable[tuple[str, dict[str, Any]]]:
         path = os.fspath(data)
         if not os.path.exists(path):
             raise DataError("no such file: %s" % path)
-        if path.endswith(".csv"):
+        if path.lower().endswith(".csv"):
             with open(path, newline="", encoding="utf-8-sig") as f:
                 for i, rec in enumerate(csv.DictReader(f), start=2):
+                    rec = {k: unsafe_cell(v) for k, v in rec.items()}
                     yield "%s line %d" % (os.path.basename(path), i), {"_csv": True, **rec}
             return
         with open(path, encoding="utf-8") as f:
@@ -141,23 +165,37 @@ def _records(data: Any) -> Iterable[tuple[str, dict[str, Any]]]:
         yield "row %d" % i, rec
 
 
+def _split_of(rec: dict[str, Any], where: str) -> str:
+    held = str(rec.get("split") or "").strip().lower()
+    held = ALIASES.get(held, held)
+    if held and held not in SPLITS:
+        raise DataError("%s: split must be one of %s (or blank), got %r" % (where, SPLITS, held))
+    return held
+
+
 def load(
     data: Any, schema: type[BaseModel] | Schema | None = None, group_by: str | None = None, split: str = "train"
 ) -> list[Row]:
     """Read training data. CSV needs a `text` column and one column per schema field (blank = unlabelled).
 
-    Rows with a `split` column (a golden dataset) are filtered: `split="train"` drops `test` rows, so training never
-    sees the held-out slice; `split="test"` keeps only `test` rows (and rows without a split).
+    A `split` column (a golden dataset: `train`, `calib` or `test`; `dev`/`val` mean `calib`) picks rows:
+    `split="train"` never returns `test` rows; `split="test"` returns only `test` rows, or every row when no row
+    has a split. A blank split counts as `train` whenever any row has one. `split="all"` returns everything.
     """
+    if split not in ("train", "test", "all"):
+        raise ValueError("split must be 'train', 'test' or 'all', got %r" % split)
     compiled = compile_schema(schema) if isinstance(schema, type) else schema
-    rows: list[Row] = []
-    for n, (where, rec) in enumerate(_records(data)):
+    records = [(where, rec) for where, rec in _records(data)]
+    for where, rec in records:
         if not isinstance(rec, dict):
             raise DataError("%s: expected an object" % where)
-        held = str(rec.get("split") or "").strip().lower()
-        if held and held not in SPLITS:
-            raise DataError("%s: split must be one of %s (or blank), got %r" % (where, SPLITS, held))
-        if (held == "test") if split != "test" else (held not in ("", "test")):
+    marked = any(_split_of(rec, where) for where, rec in records)
+    rows: list[Row] = []
+    for n, (where, rec) in enumerate(records):
+        held = _split_of(rec, where) or ("train" if marked else "")
+        if split == "train" and held == "test":
+            continue
+        if split == "test" and marked and held != "test":
             continue
         rid = str(rec.get("id") or "row%d" % n)
         group = None if group_by is None else str(rec.get(group_by, "")) or None

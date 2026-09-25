@@ -42,6 +42,7 @@ class Log:
         self._db = sqlite3.connect(self.path, check_same_thread=False, timeout=30)
         with self._lock:
             self._db.execute("PRAGMA journal_mode=WAL")
+            self._db.execute("PRAGMA secure_delete=ON")
             self._db.executescript(_TABLES)
             self._db.commit()
 
@@ -95,13 +96,18 @@ class Log:
         return out
 
     def forget(self, decision_id: str | None = None, before: float | None = None) -> int:
-        """Delete one decision (and its labels), or every decision logged before a timestamp. Returns rows deleted."""
+        """Delete one decision (and its labels), or every decision logged before a timestamp. Returns rows deleted.
+
+        Deleted bytes are overwritten (`secure_delete`) and the write-ahead log is checkpointed and truncated, so the
+        text is gone from the database files, not only hidden.
+        """
         where, args = ("id = ?", (decision_id,)) if decision_id is not None else ("ts < ?", (before,))
         with self._lock:
             ids = [r[0] for r in self._db.execute("SELECT id FROM decisions WHERE %s" % where, args)]
             for table in ("labels", "trained", "decisions"):
                 self._db.executemany("DELETE FROM %s WHERE id = ?" % table, [(i,) for i in ids])
             self._db.commit()
+            self._db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         return len(ids)
 
     def mark_trained(self, ids: Iterable[str], run: str) -> None:

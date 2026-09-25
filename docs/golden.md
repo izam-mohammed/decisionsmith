@@ -11,7 +11,7 @@ samples the production flow collected.
 ```python
 import decisionsmith as ds
 
-rows = ds.golden("decisions.db", teacher="claude-opus-4-5", n=500, schema=["billing", "technical", "sales"])
+rows = ds.golden("decisions.db", teacher="claude-opus-5", n=500, schema=["billing", "technical", "sales"])
 # writes golden.csv: id, text, one column per field, split (train or test), labelled_by
 
 model = ds.model(["billing", "technical", "sales"])
@@ -36,7 +36,19 @@ print(model.evaluate("golden.csv"))  # uses only split=test rows
 | `diverse` | an even spread across the student's predicted labels and across text lengths | nothing (with no student it spreads by length only) |
 | `random` | a random sample | nothing |
 
-Duplicates (same text, ignoring case and spacing) are dropped first.
+Duplicates (the same text, see [what counts as the same text](evaluate.md#same-text)) are dropped first.
+
+## Who labels each row
+
+| `labelled_by` | when |
+|---|---|
+| `human` | the log already has your label for every field (from `h.label(...)`); the LLM is not asked |
+| `llm:<model>+human` | your labels cover some fields; the LLM answered the rest |
+| `llm:<model>` | the LLM answered every field |
+
+If the LLM fails on a row it is left out and counted in the summary with the first error. If it fails on the first
+five rows and none worked, or on every row, `ds.golden` stops with an `EngineError` that shows the first error (CLI
+exit code 4), instead of writing an empty file.
 
 ## Options
 
@@ -45,11 +57,21 @@ Duplicates (same text, ignoring case and spacing) are dropped first.
 | `n` | `500` | you want more or fewer rows labelled (each one is an LLM call) |
 | `schema` | from the harness | the source is a file or a list: pass labels, your class, or a `ds.model` (which also scores the texts) |
 | `test` | `0.2` | the share of rows marked `split=test`, held out for `evaluate` |
-| `out` | `"golden.csv"` | another path, or `None` to only return the rows |
+| `out` | `"golden.csv"` | another path (`.csv` or `.jsonl`), or `None` to only return the rows |
+| `overwrite` | `False` | you want to replace an existing file; without it `ds.golden` stops rather than lose your review |
 
-The `split` column takes `train`, `calib` or `test` (blank counts as `train`). `test` rows are held out for
-`evaluate` and never trained on; rows you mark `calib` are used to fit the confidence calibration instead of a
-random slice. Any other value is an error that names the line.
+The `split` column takes `train`, `calib` or `test` (`dev` and `val` mean `calib`). `test` rows are held out for
+`evaluate` and `bench` and never trained on; rows you mark `calib` are used to fit the confidence calibration
+instead of a random slice. A blank split counts as `train` when any row in the file has a split; only a file with
+no split values at all is used whole. Any other value is an error that names the line. With `test` above 0 and at
+least two rows, at least one row is held out. Rows the model was already trained on (from the log) are never put
+in the test split.
+
+Row ids come from the text (`g` plus a short hash), so files from several runs can be joined without clashes. The
+file is written to a temporary name and renamed when it is complete.
+
+Cells that start with `=`, `+`, `-` or `@` are written with a leading `'` so a spreadsheet doesn't run them as a
+formula; decisionsmith removes it again when it reads the file.
 
 Review the CSV before you train: fix a wrong label in place, or delete the row. Rows the LLM could not label are
 left out and counted in the summary line.
@@ -57,7 +79,7 @@ left out and counted in the summary line.
 ## From the command line
 
 ```bash
-uv run decisionsmith golden --log decisions.db --labels billing,technical,sales --teacher claude-opus-4-5 -n 500
+uv run decisionsmith golden --log decisions.db --labels billing,technical,sales --teacher claude-opus-5 -n 500
 uv run decisionsmith golden texts.txt --schema app.py:Ticket --teacher claude-haiku-4-5 --strategy random
 uv run decisionsmith golden texts.txt --labels billing,technical,sales --teacher claude-haiku-4-5 --score --strategy uncertain
 ```
@@ -72,5 +94,8 @@ uv run decisionsmith golden texts.txt --labels billing,technical,sales --teacher
 | `ds.golden needs to know the answers` | pass `schema=`: a list of labels, your class, or a `ds.model` |
 | `... has no Ticket decisions with text` | the harness ran with `collect=0`, so no text was kept; see [collect](collect.md) |
 | `no log at decisions.db` | run a harness with `log="decisions.db"` first, or point at the right file |
+| `golden.csv already exists and may hold your review` | pass `overwrite=True` (CLI `--overwrite`) or another `out` |
+| `could not label any of the 5 texts tried; first error: ...` | check the teacher: `uv run decisionsmith doctor --engines <model>` |
+| `--score is for a texts file` | a log already has the student's confidences; drop `--score` |
 
 **Next:** [evaluate](evaluate.md) the model you train on it.

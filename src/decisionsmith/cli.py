@@ -115,14 +115,16 @@ def read_texts(path: str) -> list[str]:
     if not os.path.exists(path):
         raise ValueError("no such file: %s" % path)
     with open(path, encoding="utf-8-sig", newline="") as f:
-        if path.endswith(".csv"):
+        if path.lower().endswith(".csv"):
             import csv
+
+            from .training.data import unsafe_cell
 
             rows = list(csv.DictReader(f))
             if rows and "text" not in rows[0]:
                 raise ValueError("%s needs a 'text' column" % path)
-            return [r["text"] for r in rows if r.get("text", "").strip()]
-        if path.endswith(".jsonl"):
+            return [unsafe_cell(r["text"]) for r in rows if r.get("text", "").strip()]
+        if path.lower().endswith(".jsonl"):
             return [json.loads(line)["text"] for line in f if line.strip()]
         return [line.strip() for line in f if line.strip()]
 
@@ -170,6 +172,8 @@ def _golden(args: argparse.Namespace) -> int:
 
     if bool(args.log) == bool(args.texts):
         raise ValueError("give a harness log (--log decisions.db) or a file of texts, not both")
+    if args.log and args.score:
+        raise ValueError("--score is for a texts file; a harness log already has the student's confidences")
     teacher = _teacher(args)
     if teacher is None:
         raise ValueError("golden needs --teacher, the LLM that labels the rows, e.g. --teacher claude-opus-5")
@@ -186,6 +190,7 @@ def _golden(args: argparse.Namespace) -> int:
         schema=schema,
         test=args.test,
         out=args.out,
+        overwrite=args.overwrite,
         seed=args.seed,
         verbose=not args.json,
     )
@@ -396,7 +401,8 @@ def parser() -> argparse.ArgumentParser:
     gd.add_argument("--base", default="laya", help="with --score: the model that scores the texts")
     gd.add_argument("--test", type=float, default=0.2, help="share marked split=test for evaluation (default 0.2)")
     gd.add_argument("--seed", type=int, default=0)
-    gd.add_argument("--out", default="golden.csv")
+    gd.add_argument("--out", default="golden.csv", help=".csv (easy to review) or .jsonl")
+    gd.add_argument("--overwrite", action="store_true", help="replace an existing --out file")
     gd.set_defaults(run=_golden)
 
     ev = cmd("eval", "evaluate a saved model on labelled data: numbers per field and go/no-go")
@@ -445,7 +451,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except EngineError as e:
         _fail(args, "engine", str(e), e.fix)
         return ENGINE
-    except (ValueError, TypeError, KeyError, FileNotFoundError) as e:
+    except (ValueError, TypeError, KeyError, FileNotFoundError, FileExistsError) as e:
         _fail(args, "invalid", str(e), "")
         return INVALID
     except KeyboardInterrupt:

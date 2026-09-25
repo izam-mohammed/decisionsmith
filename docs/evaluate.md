@@ -60,4 +60,12 @@ else the LLM does).
 | `12 of 200 test texts were in the training data` | evaluate on rows the model never saw; with `ds.golden`, keep the `split` column |
 | `no labelled rows to evaluate` | the file needs a `text` column and a label column per field (`label` for a labels model) |
 
+<a id="same-text"></a>
+## What counts as the same text
+
+Two texts are the same when they match after Unicode NFKC normalisation, case folding, dropping punctuation and
+collapsing spaces: `"Refund, please!"` and `"refund please"` are the same; `"refund"` and `"refunds"` are not. A
+model retrained from a saved model keeps the fingerprints of both rounds of training. The fingerprints are 16 hex
+characters of a SHA-256 hash; see [collect](collect.md) for what that means for privacy.
+
 **Next:** [save and load](save-and-load.md).

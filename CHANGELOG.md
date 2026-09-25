@@ -4,11 +4,15 @@
 
 - **`ds.golden(source, teacher, n=500, strategy="uncertain")`** picks texts from a harness log, a file or a list
   (`uncertain`, `disagree`, `diverse`, `random`), labels them with the main LLM and writes `golden.csv` with a
-  `split` column (`train`, `calib`, `test`) and `labelled_by`. Training never sees `split=test` rows and fits
+  `split` column (`train`, `calib`, `test`; `dev`/`val` mean `calib`) and `labelled_by` (`human`, `llm:<model>`).
+  Human labels in the log are used as they are; an existing file is never overwritten without `overwrite=True`. Training never sees `split=test` rows and fits
   calibration on `split=calib` rows; `evaluate` uses only `split=test` rows. Trained models record one-way
   fingerprints of their training texts, and `evaluate` flags (no-go) any test text the model trained on.
-- **`collect=` on the harness** keeps the text of a random share of decisions plus every unsure or LLM-answered one
-  (`collect=0` stores no text); **`h.forget(id)`** and **`h.forget(older_than_days=30)`** delete decisions.
+- **`collect=` on the harness** keeps the text of a share of decisions plus every unsure or disputed one
+  (`collect=0` stores no text); **`h.forget(id)`** and **`h.forget(older_than_days=30)`** delete decisions and
+  overwrite their bytes in the log.
+- **`ds.bench` on a file with a `split` column uses only the `split=test` rows.** A blank split counts as `train`
+  whenever any row has a split.
 - **CLI `decisionsmith golden`** (from `--log` or a texts file) and **`decisionsmith eval`** (a saved model on labelled
   data; exit code 2 on no-go).
 - **Security: resume state is no longer pickled.** `checkpoint_latest/` now holds `state.safetensors` + `state.json`

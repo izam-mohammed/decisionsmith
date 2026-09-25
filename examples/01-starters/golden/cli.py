@@ -21,7 +21,7 @@ def decisionsmith(*args: str) -> None:
 
 
 labels = "billing,technical,sales"
-decisionsmith("golden", "--log", "decisions.db", "--labels", labels, "--teacher", "claude-opus-4-5", "-n", "80")
+decisionsmith("golden", "--log", "decisions.db", "--labels", labels, "--teacher", "claude-opus-5", "-n", "80")
 decisionsmith(
     "golden",
     "texts.txt",

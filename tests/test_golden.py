@@ -38,18 +38,38 @@ def read(path):
 # collect= and forget
 
 
-def test_collect_keeps_text_only_for_sampled_unsure_or_teacher_rows(db):
+def test_collect_keeps_unsure_disagreeing_and_sampled_texts(db):
+    from decisionsmith.core import sampled
+
     student = FakeEngine(truth, confidence=unsure_on_odd, name="student")
     teacher = FakeEngine(truth, name="teacher")
-    with ds.harness(Ticket, teacher=teacher, student=student, mode="cascade", log=db, collect=0.0001, audit=0) as h:
-        h._random.seed(1)
-        h.many(corpus(40))
+    with ds.harness(Ticket, teacher=teacher, student=student, mode="cascade", log=db, collect=0.3, audit=0) as h:
+        h.many(corpus(60))
         rows = h.log.rows("Ticket")
-    kept = [r for r in rows if r["text"]]
-    assert len(rows) == 40 and kept and len(kept) < 40
-    assert all("teacher" in r["source"].values() for r in kept)
-    assert all(r["text"] is None for r in rows if "teacher" not in r["source"].values())
+    kept = {r["id"] for r in rows if r["text"]}
+    by_chance = {r["id"] for r in rows if sampled(r["id"], 0.3)}
+    unsure_ids = {r["id"] for r in rows if "teacher" in r["source"].values()}
+    assert kept == unsure_ids | by_chance and unsure_ids and by_chance - unsure_ids and len(kept) < 60
     assert all(r["value"] for r in rows)
+
+
+def test_collect_samples_in_shadow_and_teacher_modes(db, tmp_path):
+    from decisionsmith.core import sampled
+
+    student = FakeEngine(truth, confidence=0.95, name="student")
+    with ds.harness(Ticket, teacher=FakeEngine(truth), student=student, mode="shadow", log=db, collect=0.2) as h:
+        h.many(corpus(50))
+        rows = h.log.rows("Ticket")
+    assert {r["id"] for r in rows if r["text"]} == {r["id"] for r in rows if sampled(r["id"], 0.2)}
+    wrong = FakeEngine(truth, accuracy=0.0, confidence=0.95, name="wrong")
+    with ds.harness(Ticket, teacher=FakeEngine(truth), student=wrong, mode="shadow", log=db, collect=0.01) as h:
+        h.many(corpus(10))
+        assert all(r["text"] for r in h.log.rows("Ticket") if r["student"] == "wrong")
+    only = str(tmp_path / "teacher.db")
+    with ds.harness(Ticket, teacher=FakeEngine(truth), log=only, collect=0.2) as h:
+        h.many(corpus(50))
+        rows = h.log.rows("Ticket")
+    assert 0 < sum(bool(r["text"]) for r in rows) < 50
 
 
 def test_collect_all_and_none(db, tmp_path):
@@ -62,7 +82,8 @@ def test_collect_all_and_none(db, tmp_path):
         rows = log.rows("Ticket")
     assert rows and all(r["text"] is None for r in rows)
     h = ds.harness(Ticket, teacher=FakeEngine(truth), log=other)
-    assert h.export(str(tmp_path / "x.jsonl")) == 0
+    with pytest.warns(UserWarning, match="no text"):
+        assert h.export(str(tmp_path / "x.jsonl")) == 0
     h.close()
     with pytest.raises(ValueError, match="collect must be in"):
         ds.harness(Ticket, teacher="fake", log=None, collect=2)
@@ -85,8 +106,23 @@ def test_forget_one_and_old(db, monkeypatch):
         for bad in ({}, {"decision_id": "x", "older_than_days": 1}):
             with pytest.raises(ValueError, match="give a decision id"):
                 h.forget(**bad)
+        with pytest.raises(ValueError, match="0 or more"):
+            h.forget(older_than_days=-1)
     with pytest.raises(ValueError, match="log=None"):
         ds.harness(Ticket, teacher="fake", log=None).forget("x")
+
+
+def test_forget_leaves_no_bytes_in_the_database_files(db):
+    secret = "my card number is 4111 secret-marker-xyz"
+    with ds.harness(Ticket, teacher=FakeEngine(truth), log=db) as h:
+        r = h.decide("you charged me twice " + secret)
+        h.label(r.id, team="billing")
+        for t in corpus(20):
+            h.decide(t)
+        h.forget(r.id)
+        files = [db, db + "-wal"]
+        found = sum(open(f, "rb").read().count(b"secret-marker-xyz") for f in files if os.path.exists(f))
+    assert found == 0
 
 
 # ds.golden
@@ -97,10 +133,16 @@ def test_golden_uncertain_from_a_log(db, tmp_path, capsys):
     out = str(tmp_path / "golden.csv")
     rows = ds.golden(db, FakeEngine(truth, name="big-llm"), n=10, schema=Ticket, out=out)
     assert len(rows) == 10 and all(int(r["text"].split()[-1]) % 2 == 1 for r in rows)
-    assert sum(r["split"] == "test" for r in rows) == 2 and {r["labelled_by"] for r in rows} == {"big-llm"}
+    assert sum(r["split"] == "test" for r in rows) == 2 and {r["labelled_by"] for r in rows} == {"llm:big-llm"}
     csv_rows = read(out)
     assert list(csv_rows[0]) == ["id", "text", "team", "wants_refund", "split", "labelled_by"]
     assert csv_rows[0]["team"] == truth(csv_rows[0]["text"])["team"]
+    assert all(r["id"].startswith("g") and len(r["id"]) == 13 for r in csv_rows)
+    with pytest.raises(FileExistsError, match="overwrite=True"):
+        ds.golden(db, FakeEngine(truth), n=3, schema=Ticket, out=out)
+    assert len(read(out)) == 10
+    ds.golden(db, FakeEngine(truth), n=3, schema=Ticket, out=out, overwrite=True, verbose=False)
+    assert len(read(out)) == 3 and not os.path.exists(out + ".tmp")
     assert "golden: 10 rows (uncertain) labelled by big-llm · 2 marked split=test · wrote" in capsys.readouterr().out
 
 
@@ -147,10 +189,8 @@ def test_golden_diverse_random_and_texts(tmp_path, capsys):
     assert (
         len(ds.golden(str(path), FakeEngine(team), n=4, strategy="random", schema=LABELS, out=None, verbose=False)) == 4
     )
-    ds.golden(texts, FakeEngine(team, error="down"), n=3, strategy="random", schema=LABELS, out=None)
-    assert "golden: 0 rows (random) labelled by fake · 3 could not be labelled · 0 marked split=test" in (
-        capsys.readouterr().out
-    )
+    with pytest.raises(ds.EngineError, match="could not label any of the 3 texts tried; first error: .*down"):
+        ds.golden(texts, FakeEngine(team, error="down"), n=3, strategy="random", schema=LABELS, out=None)
 
 
 def test_golden_diverse_uneven_buckets_and_disagree_without_teacher():
@@ -189,12 +229,146 @@ def test_golden_split_is_kept_out_of_training_and_used_for_evaluation(tmp_path):
     ds.golden(corpus(50), FakeEngine(team), n=50, schema=model, out=out, verbose=False)
     train = data_mod.load(out, model.schema)
     test = data_mod.load(out, model.schema, split="test")
-    assert len(train) == 40 and len(test) == 10 and not {r.id for r in train} & {r.id for r in test}
+    assert (
+        len(train) == 40
+        and len(test) == 10
+        and {r.split for r in train} == {"train"}
+        and not {r.id for r in train} & {r.id for r in test}
+    )
     report = ds.model(LABELS, FakeEngine(team, confidence=1.0)).evaluate(out)
     assert report.details["rows"] == 10
     both = [{"text": "a", "label": "sales", "split": "test"}, {"text": "b", "label": "sales"}]
     assert [r.text for r in data_mod.load(model._rows(both), model.schema)] == ["b"]
-    assert [r.text for r in data_mod.load(model._rows(both), model.schema, split="test")] == ["a", "b"]
+    assert [r.text for r in data_mod.load(model._rows(both), model.schema, split="test")] == ["a"]
+    plain = [{"text": "a", "label": "sales"}, {"text": "b", "label": "sales"}]
+    assert len(data_mod.load(model._rows(plain), model.schema, split="test")) == 2
+    assert len(data_mod.load(model._rows(both), model.schema, split="all")) == 2
+    with pytest.raises(ValueError, match="split must be 'train'"):
+        data_mod.load(model._rows(both), model.schema, split="dev")
+
+
+def test_blank_split_rows_are_train_only_when_any_row_has_a_split():
+    model = ds.model(LABELS, "fake")
+    rows = [{"text": "t%d" % i, "label": "sales", "split": ["test"] * 5 + ["train"] * 10 + [""] * 5} for i in range(20)]
+    rows = [{**r, "split": r["split"][i]} for i, r in enumerate(rows)]
+    train = data_mod.load(model._rows(rows), model.schema)
+    test = data_mod.load(model._rows(rows), model.schema, split="test")
+    assert len(train) == 15 and len(test) == 5 and not {r.text for r in train} & {r.text for r in test}
+    assert {r.split for r in train} == {"train"}
+
+
+def test_bench_uses_only_the_test_split(tmp_path):
+    rows = [{"text": t, "answers": truth(t), "split": s} for t, s in zip(corpus(12), ["test"] * 4 + ["train"] * 8)]
+    assert ds.bench(Ticket, rows, [FakeEngine(truth)]).details["rows"] == 4
+    assert (
+        ds.bench(Ticket, [{k: v for k, v in r.items() if k != "split"} for r in rows], [FakeEngine(truth)]).details[
+            "rows"
+        ]
+        == 12
+    )
+
+
+def test_golden_jsonl_round_trip_and_bad_extension(tmp_path):
+    out = str(tmp_path / "golden.jsonl")
+    model = ds.model(LABELS, FakeEngine(team, confidence=0.6))
+    rows = ds.golden(corpus(20), FakeEngine(team), n=20, schema=model, out=out, verbose=False)
+    lines = [json.loads(x) for x in open(out, encoding="utf-8")]
+    assert len(lines) == 20 and lines[0]["answers"]["label"] in LABELS and "split" in lines[0]
+    assert len(data_mod.load(out, model.schema, split="test")) == sum(r["split"] == "test" for r in rows) == 4
+    with pytest.raises(ValueError, match="out must end in .csv"):
+        ds.golden(corpus(3), FakeEngine(team), schema=LABELS, strategy="random", out=str(tmp_path / "g.txt"))
+
+
+def test_golden_csv_cells_are_safe_from_formulas(tmp_path):
+    out = str(tmp_path / "g.csv")
+    texts = ["=HYPERLINK(1) you charged me twice", "@SUM refund my card charge", "+1 the app crashes on login"]
+    ds.golden(texts, FakeEngine(team), n=3, schema=LABELS, strategy="random", out=out, verbose=False)
+    raw = open(out, encoding="utf-8").read()
+    assert "'=HYPERLINK" in raw and "'@SUM" in raw and "'+1" in raw
+    assert sorted(r.text for r in data_mod.load(out, ds.model(LABELS, "fake").schema, split="all")) == sorted(texts)
+    assert sorted(cli.read_texts(out)) == sorted(texts)
+
+
+def test_golden_teacher_failures(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    calls = []
+
+    class Flaky(FakeEngine):
+        def ask(self, text, questions):
+            calls.append(text)
+            if text.endswith(" 0"):
+                raise ValueError("bad reply")
+            return super().ask(text, questions)
+
+    rows = ds.golden(corpus(9), Flaky(team), n=9, schema=LABELS, strategy="random")
+    assert len(rows) == 6
+    assert "3 could not be labelled (first error: ValueError: bad reply)" in capsys.readouterr().out
+    calls.clear()
+    with pytest.raises(ds.EngineError, match="first error"):
+        ds.golden(corpus(40), FakeEngine(team, error="quota"), n=40, schema=LABELS, strategy="random", out=None)
+    assert len(FakeEngine(team, error="quota").calls) == 0
+
+
+def test_golden_uses_human_labels_and_keeps_trained_rows_out_of_test(db):
+    with ds.harness(
+        Ticket, teacher=FakeEngine(truth), student=FakeEngine(truth, confidence=0.5), mode="shadow", log=db
+    ) as h:
+        results = [h.decide(t) for t in corpus(10)]
+        h.label(results[0].id, team="sales", wants_refund=True)
+        h.label(results[1].id, team="sales")
+        h.log.mark_trained([r.id for r in results[2:]], "runs/x")
+    llm = FakeEngine(truth, name="big")
+    rows = {r["text"]: r for r in ds.golden(db, llm, n=10, schema=Ticket, test=0.5, out=None, verbose=False)}
+    first, second = rows[corpus(10)[0]], rows[corpus(10)[1]]
+    assert first["labelled_by"] == "human" and first["answers"]["team"]["sales"] == 1.0
+    assert second["labelled_by"] == "llm:big+human" and second["answers"]["team"]["sales"] == 1.0
+    assert corpus(10)[0] not in {c[0] for c in llm.calls}
+    assert {t for t, r in rows.items() if r["split"] == "test"} <= set(corpus(10)[:2])
+
+
+def test_golden_small_n_still_holds_out_a_row():
+    rows = ds.golden(corpus(2), FakeEngine(team), n=2, schema=LABELS, strategy="random", out=None, verbose=False)
+    assert sorted(r["split"] for r in rows) == ["test", "train"]
+    one = ds.golden(corpus(1), FakeEngine(team), n=1, schema=LABELS, strategy="random", out=None, verbose=False)
+    assert [r["split"] for r in one] == ["train"]
+
+
+def test_golden_ids_are_stable_across_runs():
+    a = ds.golden(corpus(6), FakeEngine(team), n=3, schema=LABELS, strategy="random", seed=1, out=None, verbose=False)
+    b = ds.golden(corpus(6), FakeEngine(team), n=6, schema=LABELS, strategy="random", seed=2, out=None, verbose=False)
+    ids = {r["text"]: r["id"] for r in b}
+    assert all(ids[r["text"]] == r["id"] for r in a) and len(set(ids.values())) == 6
+
+
+def test_same_text():
+    assert data_mod.same_text("Ｒefund, please!!  NOW") == data_mod.same_text("refund please now")
+    assert data_mod.text_hash("Straße") == data_mod.text_hash("STRASSE")
+    assert data_mod.text_hash("refund") != data_mod.text_hash("refunds")
+
+
+def test_train_with_teacher_keeps_test_rows_out(tiny, monkeypatch):
+    import decisionsmith.training.finetuning as fmod
+
+    seen = {}
+
+    def fake(rows, model, **kw):
+        seen["rows"] = rows
+        return ds.Report(
+            "finetune",
+            "x",
+            [],
+            details={"base": {"all": {}}, "finetuned": {"all": {"n": 0}}, "provenance": {"rows": {"train": 0}}},
+        )
+
+    monkeypatch.setattr(fmod, "finetune", fake)
+    m = ds.model(LABELS, str(tiny))
+    data = [{"text": t, "split": "test" if i < 3 else "train"} for i, t in enumerate(corpus(10))] + [
+        "sync is broken today"
+    ]
+    m.train(data, teacher=FakeEngine(team), verbose=False)
+    texts = {r["text"] for r in seen["rows"]}
+    assert not texts & set(corpus(10)[:3]) and "sync is broken today" in texts
+    assert {r["split"] for r in seen["rows"]} == {"train", None}
 
 
 # CLI
@@ -244,6 +418,7 @@ def test_cli_golden(db, tmp_path, capsys, monkeypatch):
         "6",
         "--out",
         out,
+        "--overwrite",
     )
     assert code == 0 and "golden: 6 rows (diverse)" in text
     code, _ = run(
@@ -261,11 +436,12 @@ def test_cli_golden(db, tmp_path, capsys, monkeypatch):
         "--out",
         out,
     )
-    assert code == 0
+    assert code == cli.INVALID
     for argv, match in (
         (["golden", "--labels", "a,b", "--teacher", "x"], "not both"),
         (["golden", str(texts), "--labels", "a,b"], "needs --teacher"),
         (["golden", str(texts), "--teacher", "x"], "either --labels"),
+        (["golden", "--log", db, "--labels", "a,b", "--teacher", "x", "--score"], "--score is for a texts file"),
     ):
         code, text = run(capsys, *argv, "--json")
         assert code == cli.INVALID and match in json.loads(text)["error"]["message"]
@@ -275,7 +451,7 @@ def test_cli_golden_no_rows(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(cli, "_teacher", lambda args: FakeEngine(team, error="down"))
     texts = tmp_path / "t.txt"
     texts.write_text("\n".join(corpus(3)))
-    code, _ = run(
+    code, text = run(
         capsys,
         "golden",
         str(texts),
@@ -289,7 +465,9 @@ def test_cli_golden_no_rows(tmp_path, capsys, monkeypatch):
         str(tmp_path / "g.csv"),
         "--json",
     )
-    assert code == cli.NOT_READY
+    assert code == cli.ENGINE and not os.path.exists(tmp_path / "g.csv")
+    error = json.loads(text)["error"]
+    assert error["code"] == "engine" and "first error" in error["message"] and "doctor" in error["fix"]
 
 
 def test_cli_eval(tiny, tmp_path, capsys):
@@ -330,7 +508,10 @@ def test_split_values_calib_and_errors(tmp_path):
     assert {r.id for r in ca} == {r.id for r in loaded if r.split == "calib"} and len(tr) + len(te) == 35
     assert not {r.id for r in ca} & {r.id for r in tr + te}
     with pytest.raises(data_mod.DataError, match="split must be one of"):
-        data_mod.load(model._rows([{"text": "a", "label": "sales", "split": "dev"}]), model.schema)
+        data_mod.load(model._rows([{"text": "a", "label": "sales", "split": "holdout"}]), model.schema)
+    assert data_mod.load(model._rows([{"text": "a", "label": "sales", "split": "DEV"}]), model.schema)[0].split == (
+        "calib"
+    )
 
 
 def test_evaluate_flags_texts_it_trained_on(tiny, tmp_path):
@@ -354,3 +535,21 @@ def test_training_hashes_unknown_checkpoint():
     from decisionsmith.evaluation import training_hashes
 
     assert training_hashes(ds.model(LABELS, "laya")) == set()
+
+
+def test_hash_chain_train_retrain_save_load_evaluate(tiny, tmp_path):
+    from decisionsmith.training.finetuning import _base_hashes
+
+    first = [(t, truth(t)["team"]) for t in corpus(30)]
+    second = [(t + " again", truth(t)["team"]) for t in corpus(30)]
+    to_rows = ds.model(LABELS, "fake")._rows
+    a, b = str(tmp_path / "a"), str(tmp_path / "b")
+    ds.finetune(to_rows(first), ds.model(LABELS, "fake").schema.model, base=str(tiny), out=a, epochs=1, verbose=False)
+    ds.finetune(to_rows(second), ds.model(LABELS, "fake").schema.model, base=a, out=b, epochs=1, verbose=False)
+    assert _base_hashes(a) <= _base_hashes(b) and len(_base_hashes(b)) == 60
+    assert _base_hashes(str(tmp_path / "missing")) == set()
+    m = ds.model(LABELS, b)
+    m.trained = b
+    loaded = ds.load(m.save(str(tmp_path / "models" / "team")))
+    report = loaded.evaluate(first[:12])
+    assert report.details["overlap"] == 12 and not report.go

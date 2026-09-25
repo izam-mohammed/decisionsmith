@@ -20,7 +20,7 @@ with ds.harness(model, teacher="claude-haiku-4-5", mode="shadow", log="decisions
     h.many(texts)
 
 # developer: pick the 200 texts the student was least sure about and have the main LLM label them
-rows = ds.golden("decisions.db", teacher="claude-opus-4-5", n=200, schema=labels)  # writes golden.csv
+rows = ds.golden("decisions.db", teacher="claude-opus-5", n=200, schema=labels)  # writes golden.csv
 
 model.train("golden.csv")  # rows marked split=test are never trained on
 print(model.evaluate("golden.csv"))  # ...and they are the only ones evaluated

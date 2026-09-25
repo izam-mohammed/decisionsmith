@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import os
 import random
 import time
 import uuid
+import warnings
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Generic, Literal, TypeVar, cast
@@ -30,6 +32,11 @@ MIN_FINETUNE_ROWS = 50
 Job = tuple[Engine, str, list[str], Any]
 
 logger = logging.getLogger("decisionsmith")
+
+
+def sampled(decision_id: str, share: float) -> bool:
+    """Whether `collect=share` keeps this decision's text by chance: a stable function of the id, not a random draw."""
+    return int(hashlib.sha256(decision_id.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF < share
 
 
 class Result(BaseModel, Generic[T]):
@@ -266,7 +273,7 @@ class Harness(Generic[T]):
                 {
                     "id": decision_id,
                     "schema": self.schema.name,
-                    "text": text if self._keep_text(source, unsure) else None,
+                    "text": text if self._keep_text(decision_id, adapted, sure, t.dists) else None,
                     "value": {n: top(d) for n, d in value.items()},
                     "source": source,
                     "teacher": self.teacher.name if self.teacher else None,
@@ -286,15 +293,27 @@ class Harness(Generic[T]):
             latency_ms=latency,
         )
 
-    def _keep_text(self, source: dict[str, str], unsure: bool) -> bool:
+    def _keep_text(
+        self,
+        decision_id: str | None,
+        student: dict[str, Distribution],
+        sure: dict[str, bool],
+        teacher: dict[str, Distribution],
+    ) -> bool:
         if self.collect >= 1.0:
             return True
         if self.collect <= 0.0:
             return False
-        return unsure or "teacher" in source.values() or self._random.random() < self.collect
+        if not all(sure.values()):
+            return True
+        if any(n in teacher and top(d) != top(teacher[n]) for n, d in student.items()):
+            return True
+        return sampled(decision_id or "", self.collect)
 
     def forget(self, decision_id: str | None = None, *, older_than_days: float | None = None) -> int:
         """Delete a logged decision (text, answers, labels): `h.forget(r.id)`, or `h.forget(older_than_days=30)`."""
+        if older_than_days is not None and older_than_days < 0:
+            raise ValueError("older_than_days must be 0 or more, got %r" % older_than_days)
         if (decision_id is None) == (older_than_days is None):
             raise ValueError(
                 "give a decision id or older_than_days, e.g. h.forget(r.id) or h.forget(older_than_days=30)"
@@ -327,8 +346,20 @@ class Harness(Generic[T]):
         )
 
     def export(self, path: str, format: Literal["answers", "typed-decisions"] = "answers") -> int:
-        """Write every decision with a label (human first, else teacher) as training JSONL. Returns rows written."""
-        return export(self.schema, self._require_log(), path, format)
+        """Write every decision with a label (human first, else teacher) as training JSONL. Returns rows written.
+
+        Decisions logged without their text (see `collect=`) can't be exported.
+        """
+        log = self._require_log()
+        n = export(self.schema, log, path, format)
+        if n == 0 and any(r["text"] is None for r in log.rows(self.schema.name)):
+            warnings.warn(
+                "exported 0 rows: the logged decisions have no text (this harness or an earlier one used collect=0 "
+                "or a low collect); raise collect= to keep texts for training",
+                UserWarning,
+                stacklevel=2,
+            )
+        return n
 
     def adapt(self, target: float = 0.97) -> Report:
         """Fit per-field calibration and cascade thresholds from the log. Changes confidence, never answers."""
@@ -428,9 +459,9 @@ def harness(
     model = ds.model(["billing", "technical", "sales"])   # base or trained Laya
     h = ds.harness(model, teacher="claude-haiku-4-5")       # it becomes the student; h(text) -> "billing"
 
-    `collect` is the share of texts kept in the log (1.0 keeps all). Below 1, a random `collect` share is kept plus
-    every text the student was unsure of or the teacher answered; the rest are logged without their text. 0 keeps
-    no text at all.
+    `collect` is the share of texts kept in the log (1.0 keeps all). Below 1, a `collect` share (picked from the
+    decision id) is kept plus every text the student was unsure of or answered differently from the teacher; the
+    rest are logged without their text. With no student (teacher mode) only the share is kept. 0 keeps no text.
     """
     return Harness(
         schema,

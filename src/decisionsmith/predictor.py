@@ -263,7 +263,10 @@ class Model:
         elif teacher is not None:
             if isinstance(data, (str, os.PathLike)):
                 raise ValueError("with teacher=..., pass the texts as a list: model.train(texts, teacher=...)")
-            rows = self.label([x if isinstance(x, str) else x["text"] for x in data], teacher, verbose=verbose)
+            items = [x for x in data if isinstance(x, str) or x.get("split") != "test"]
+            splits = {x["text"]: x.get("split") for x in items if not isinstance(x, str)}
+            rows = self.label([x if isinstance(x, str) else x["text"] for x in items], teacher, verbose=verbose)
+            rows = [{**r, "split": splits.get(r["text"])} for r in rows]
         else:
             rows = self._rows(data)
         out = out or next_run(self.schema.name)
