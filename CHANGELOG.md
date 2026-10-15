@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Repository standards:** security policy, contributing guide, code of conduct, issue forms, Dependabot,
+  OpenSSF Scorecard, and hardened workflows (actions pinned to commit SHAs, read-only tokens). Releases now run the
+  tests, publish to PyPI with PEP 740 attestations and create a GitHub release from this changelog.
 - **A coding agent can build the model, no LLM API key.** `ds.golden(..., teacher="agent")` and
   `decisionsmith golden --teacher agent` write a labelling session (`golden.session.json`) instead of calling an LLM;
   the agent labels it through new MCP tools (`golden_start`, `golden_batch`, `golden_submit`, `golden_add`,
