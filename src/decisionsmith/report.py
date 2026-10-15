@@ -75,7 +75,11 @@ def _fmt(v: Any) -> str:
 
 
 class Report:
-    """What a finetune, adapt or bench run found. `print(report)` for the table, `.to_dict()` for JSON."""
+    """What a finetune, adapt or bench run found. `print(report)` for the table, `.to_dict()` for JSON.
+
+    `switched` is set by `model.train()` and `h.finetune()`: True when the model (or the harness student) now uses
+    the new weights, False when it kept the old ones. It is None for every other report.
+    """
 
     def __init__(
         self,
@@ -91,6 +95,7 @@ class Report:
         self.kind, self.title, self.rows = kind, title, rows
         self.go, self.reasons, self.path = go, list(reasons), path
         self.details = details or {}
+        self.switched: bool | None = None
 
     @property
     def columns(self) -> list[str]:
@@ -104,6 +109,7 @@ class Report:
             "kind": self.kind,
             "title": self.title,
             "go": self.go,
+            **({} if self.switched is None else {"switched": self.switched}),
             "reasons": self.reasons,
             "path": self.path,
             "rows": self.rows,

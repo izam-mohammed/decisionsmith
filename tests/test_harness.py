@@ -250,13 +250,14 @@ def test_finetune_swaps_only_when_better(teacher, db, monkeypatch, tiny):
     tiny_out = str(tiny)
     rep = h.finetune(epochs=1)
     assert calls["base"] == "laya" and calls["out"].endswith("ticket-v2") and calls["kw"] == {"epochs": 1}
-    assert isinstance(h.student, LayaEngine) and "teacher mode" in rep.reasons[-1]
+    assert isinstance(h.student, LayaEngine) and "teacher mode" in rep.reasons[-1] and rep.switched is True
     assert h.log.trained() == {calls["rows"][0]["id"]} and db_dir.exists()
     h2 = ds.harness(Ticket, teacher=teacher, student="laya:%s" % tiny_out, log=db)
     fake2, calls2 = _fake_finetune(go=False)
     monkeypatch.setattr(fmod, "finetune", fake2)
     rep = h2.finetune(out=str(tiny))
-    assert calls2["base"] == tiny_out and rep.reasons[-1] == "kept the current student"
+    assert calls2["base"] == tiny_out and rep.reasons[-1] == "kept the current student" and rep.switched is False
+    assert rep.to_dict()["switched"] is False
     assert h2.student.name == "laya:%s" % tiny_out
     fake3, _ = _fake_finetune(go=True)
     monkeypatch.setattr(fmod, "finetune", fake3)
