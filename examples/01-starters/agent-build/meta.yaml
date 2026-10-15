@@ -1,0 +1,4 @@
+title: Build a model with a coding agent
+summary: A coding agent labels the golden set itself through the MCP tools (no LLM API key), with a second, independent answer on a share of the rows, then trains, evaluates and saves; here a scripted stand-in plays the agent.
+needs: [laya, mcp]
+expect: "golden: wrote"
