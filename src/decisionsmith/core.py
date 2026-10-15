@@ -396,8 +396,8 @@ class Harness(Generic[T]):
     def finetune(self, out: str | None = None, **options: Any) -> Report:
         """Fine-tune the Laya student on the log (human labels first, else teacher answers).
 
-        The harness switches to the new checkpoint only if it passes go/no-go and beats the current student.
-        Modes never change.
+        The harness switches to the new checkpoint only if it passes go/no-go and beats the current student;
+        `report.switched` says which happened. Modes never change.
         """
         from .training.finetuning import finetune
 
@@ -417,6 +417,7 @@ class Harness(Generic[T]):
         out = out or self._next_run()
         report = finetune(rows, self.schema.model, base=base, out=out, **options)
         self._require_log().mark_trained(report.details.get("train_ids", []), out)
+        report.switched = bool(report.go)
         if report.go:
             device = self.student.device if isinstance(self.student, LayaEngine) else None
             self.student = LayaEngine(out, device=device)

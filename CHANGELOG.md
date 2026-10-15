@@ -6,6 +6,30 @@
   FastAPI + Uvicorn): `POST /v1/decide`, a Jev-compatible `POST /v1/systemone`, `POST /v1/label`, `GET /v1/status`,
   `GET /health`, Prometheus `GET /metrics` and OpenAPI docs; optional bearer key from `DECISIONSMITH_API_KEY`, body
   and text size limits, JSON errors with a fix. See docs/serve.md.
+- **Repository standards:** security policy, contributing guide, code of conduct, issue forms, Dependabot,
+  OpenSSF Scorecard, and hardened workflows (actions pinned to commit SHAs, read-only tokens). Releases now run the
+  tests, publish to PyPI with PEP 740 attestations and create a GitHub release from this changelog.
+- **A coding agent can build the model, no LLM API key.** `ds.golden(..., teacher="agent")` and
+  `decisionsmith golden --teacher agent` write a labelling session (`golden.session.json`) instead of calling an LLM;
+  the agent labels it through new MCP tools (`golden_start`, `golden_batch`, `golden_submit`, `golden_add`,
+  `golden_status`, `golden_finish`). A share of the rows comes back under new, random ids for a second, independent
+  answer (each id takes one answer; the `labeler` subagent has only the two labelling tools);
+  `decisionsmith golden --finish` writes `golden.csv` (plus a `checked` column; fields the two answers disagree on
+  are left blank) and closes the session. Examples the agent writes are marked synthetic, never used as test rows,
+  rejected when they share 80% or more of their words with a test text, and kept only when the second answer
+  agrees. New MCP tools `data_check` (balance, repeats, leaks, near copies, lengths), `evaluate` (with `save=`) and
+  `model_info`; `finetune` takes `labels` or a session file. `model.evaluate` ends with a breakdown by `labelled_by`:
+  accuracy on rows a person labelled, agreement with an agent's or LLM's labels. Claude Code plugin:
+  `/decisionsmith:build`, the `decisionsmith-build` skill and `labeler`, `data-writer`, `evaluator` subagents;
+  AGENTS.md has the same playbook for Codex, Gemini CLI and Cursor.
+- **`report.switched`** on the report from `model.train()` and `h.finetune()`: True when the new weights are now in
+  use, False when the old ones were kept. When training kept the downloaded base model, so there is nothing on disk
+  to save, `model.save()` now says so (`nothing to save: training ran but the new model scored worse ...`) instead
+  of "train it first".
+- **Saved model folders hold no local paths.** A base checkpoint that was a local folder is recorded by its folder
+  name only (in `decisionsmith.json`, the copied `rl_agent_config.json`, `train_report.json` and the model card);
+  `laya` and hub ids stay as they are. A failed or interrupted `save` leaves no temporary folder behind, and two saves
+  in one process never share one.
 
 ## 0.1.0 (25/09/2026)
 

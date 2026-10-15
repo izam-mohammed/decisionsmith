@@ -41,6 +41,11 @@ def training_hashes(model: Model) -> set[str]:
     return set()
 
 
+def by_human(labelled_by: str) -> bool:
+    """Rows a person labelled measure accuracy; rows an agent or LLM labelled measure agreement with it."""
+    return labelled_by == "human" or labelled_by.startswith("human:")
+
+
 def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     schema = model.schema
     rows = data_mod.load(model._rows(data), schema, split="test")
@@ -61,6 +66,7 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
     worst: list[dict[str, Any]] = []
     reasons: list[str] = []
     fields: dict[str, Any] = {}
+    by_source: dict[str, list[bool]] = {}
     for name, f in schema.fields.items():
         pairs = [(p[name], r) for p, r in zip(preds, rows) if name in r.targets]
         pred = [[d[k] for k in f.labels] for d, _ in pairs]
@@ -72,6 +78,9 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
             continue
         conf = [max(p) for p in pred]
         right = [argmax(p) == argmax(g) for p, g in zip(pred, gold)]
+        for (_, r), k in zip(pairs, right):
+            if r.labelled_by:
+                by_source.setdefault(r.labelled_by, []).append(k)
         pick = [int(data_mod.text_hash(r.text)[:8], 16) % 2 == 0 for _, r in pairs]
         separate = any(pick) and not all(pick)
         chosen_on = [(c, k) for c, k, x in zip(conf, right, pick) if x or not separate]
@@ -149,6 +158,11 @@ def evaluate(model: Model, data: Any, target: float = 0.97) -> Report:
         "target": target,
         "rows": len(rows),
     }
+    if by_source:
+        details["labelled_by"] = {
+            k: {"decisions": len(v), "accuracy" if by_human(k) else "agreement": sum(v) / len(v)}
+            for k, v in sorted(by_source.items())
+        }
     title = "evaluate: %s on %d rows" % (short_name(model.name), len(rows))
     report = Report("evaluate", title, table, go=go, reasons=reasons or ["ready for the harness"], details=details)
     model.report = report
