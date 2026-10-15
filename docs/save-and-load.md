@@ -12,16 +12,23 @@ to use, with no need to define the labels or the class again.
 import decisionsmith as ds
 
 model = ds.model(["billing", "technical", "sales"])
-model.train("tickets.csv")
+report = model.train("tickets.csv")
 model.evaluate("test.csv")
-path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
+if report.switched:  # False: the new weights scored worse on the test split, so the old model was kept
+    path = model.save("models/ticket")  # models/ticket-v1, then models/ticket-v2 next time
 
-m = ds.load(path)  # on the server
-print(m.predict("I was charged twice"))
+    m = ds.load(path)  # on the server
+    print(m.predict("I was charged twice"))
 ```
 
 `tickets.csv` and `test.csv` need a `text` column and a `label` column (for a labels model) or one column per field
 (for a class). `path` is what `save` returns: the name you pass gets a version number.
+
+`model.train()` switches to the new weights unless they score worse on its held-out test split (a tie counts as
+switched), and `report.switched` says which happened. After a training run that kept the old model, `save` still
+writes whatever the model had before: an earlier trained or loaded model, a local checkpoint, and any calibration and
+thresholds from `model.evaluate()` or `h.adapt()`. A model that started from the downloaded base and never switched
+has no local folder, so `save` says training kept the old model instead.
 
 ## Versions
 
@@ -46,11 +53,13 @@ means your home folder.
 | `decisionsmith.json` | labels or schema, question text, calibration, per-field thresholds, version, created date, base model, data hash, decisionsmith version |
 | `report.json` | the latest `model.evaluate()`; without one, the training report is kept as `train_report.json` |
 | `train_log.jsonl` | loss per training epoch |
+| `MODEL_CARD.md` | what the model decides, how it was evaluated, how to load it, credits |
 
 The saved reports hold numbers only: no texts (the worst examples stay in memory as `report.details["worst"]`),
 no training row ids and no local paths. `rl_agent_config.json` holds one-way fingerprints of the training texts
-(see [evaluate](evaluate.md#same-text)). Treat the folder like the data it was trained on before you share it.
-| `MODEL_CARD.md` | what the model decides, how it was evaluated, how to load it, credits |
+(see [evaluate](evaluate.md#same-text)). A base checkpoint that was a local folder is recorded by its folder name
+only; `laya` and hub ids like `convaiinnovations/laya` are kept as they are. Treat the folder like the data it was
+trained on before you share it.
 
 ## Loading with your own class
 
@@ -74,9 +83,9 @@ class Ticket(BaseModel):
 
 
 model = ds.model(Ticket)
-model.train("tickets.csv")
-m = ds.load(model.save("models/ticket"), Ticket)
-print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...)
+if model.train("tickets.csv").switched:
+    m = ds.load(model.save("models/ticket"), Ticket)
+    print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...)
 ```
 
 ## Options
@@ -92,6 +101,7 @@ print(m.predict("Refund my double charge"))  # Ticket(team=..., wants_refund=...
 | message | fix |
 |---|---|
 | `nothing to save yet` | train first (`model.train(...)`), or save a model you loaded |
+| `nothing to save: training ran but the new model scored worse on its test split` | `report.switched` was False and the model is still the downloaded base; add more (and more varied) rows and train again |
 | `... already exists and saved versions are never overwritten` | use a new version number, or `model.save()` for the next free one |
 | `... is a plain Laya checkpoint` | the folder came from `ds.finetune`; use `ds.model(labels_or_class, path)` |
 | `Ticket does not ask the same questions as the saved model (team.criteria: ...)` | the class differs from the saved one where the message says; load without it, or change it to match |
