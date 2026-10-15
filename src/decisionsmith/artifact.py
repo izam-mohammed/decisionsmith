@@ -6,11 +6,13 @@ import json
 import os
 import re
 import shutil
+import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, create_model
 
+from .files import folder_name, path_like
 from .report import Report
 from .schema import Options, Scale, Schema, compile_schema
 
@@ -113,7 +115,7 @@ def _card(meta: dict[str, Any], report: Report | None, where: str) -> str:
         "",
         "# %s" % meta["name"],
         "",
-        "A decision model made with decisionsmith, fine-tuned from `%s`." % (meta.get("base_model") or "laya"),
+        "A decision model made with decisionsmith, fine-tuned from `%s`." % _base_name(meta.get("base_model")),
         "",
         "- %s" % what,
         "- saved: %s, decisionsmith %s" % (meta["created"][:10], meta["decisionsmith_version"]),
@@ -141,18 +143,57 @@ def _card(meta: dict[str, Any], report: Report | None, where: str) -> str:
     return "\n".join(lines)
 
 
+def _portable(base: Any) -> Any:
+    """A base checkpoint id without local paths: a path becomes its folder name; `laya`, `laya:<name>` and hub ids
+    (`org/repo`) stay. Decided from the value alone, never from what exists in the current folder."""
+    if not isinstance(base, str) or not base:
+        return base
+    if base.startswith("laya:") and len(base) > 5:
+        return "laya:%s" % _portable(base[5:])
+    return folder_name(base) if path_like(base) else base
+
+
+def _portable_training(training: dict[str, Any]) -> dict[str, Any]:
+    return {k: _portable(v) if k in ("base", "base_id") else v for k, v in training.items()}
+
+
+def _base_name(base: Any) -> str:
+    return str(_portable(base)) if base else "laya"
+
+
+def _shown_path(path: str) -> str:
+    """How a saved folder is named in its model card: relative to the working folder if inside it, else its name."""
+    full, here = os.path.abspath(path), os.path.abspath(os.getcwd())
+    try:
+        inside = os.path.commonpath([full, here]) == here
+    except ValueError:
+        inside = False
+    return os.path.relpath(full, here) if inside else os.path.basename(full)
+
+
+def _clean_token(token: str) -> str:
+    if re.match(r"^[A-Za-z]:[\\/]", token):
+        return folder_name(token)
+    kind, sep, rest = token.partition(":")
+    if sep and rest and path_like(rest):
+        return "%s:%s" % (kind, folder_name(rest))
+    return folder_name(token) if path_like(token) else token
+
+
 def _public(report: dict[str, Any]) -> dict[str, Any]:
     """A report as saved in the folder: no texts, no local paths, no training row ids."""
-    from .evaluation import short_name
-
     details = {k: v for k, v in (report.get("details") or {}).items() if k not in ("worst", "train_ids")}
     for key in ("base", "finetuned"):
         if isinstance(details.get(key), dict):
             details[key] = {k: v for k, v in details[key].items() if k != "worst"}
-    title = " ".join(short_name(w) if ":" in w else w for w in str(report.get("title", "")).split(" "))
-    if "->" in title:
-        head, _, tail = title.partition("-> ")
-        title = head + "-> " + os.path.basename(os.path.normpath(tail))
+    if isinstance(details.get("provenance"), dict):
+        details["provenance"] = _portable_training(details["provenance"])
+    title = str(report.get("title", ""))
+    if title.startswith("finetune: ") and " -> " in title:
+        base, _, out = title[len("finetune: ") :].partition(" -> ")
+        title = "finetune: %s -> %s" % (_portable(base), folder_name(out))
+    else:
+        title = " ".join(_clean_token(w) for w in title.split(" "))
     return {**report, "title": title, "path": None, "details": details}
 
 
@@ -186,51 +227,60 @@ def save(model: Model, path: str | os.PathLike[str] | None, *, verbose: bool = T
     dest, numbered = version_path(path if path is not None else _default_path(model), name)
     parent_dir = os.path.dirname(os.path.abspath(dest))
     os.makedirs(parent_dir, exist_ok=True)
-    tmp = os.path.join(parent_dir, ".%s.tmp-%d" % (os.path.basename(dest), os.getpid()))
-    shutil.rmtree(tmp, ignore_errors=True)
-    shutil.copytree(source, tmp, ignore=shutil.ignore_patterns("checkpoint_latest", META, "report.*", "*.tmp-*"))
-    cfg_path = os.path.join(source, "rl_agent_config.json")
-    trained = (_json(cfg_path).get("decisionsmith") or {}) if os.path.exists(cfg_path) else {}
-    training = trained or (model.meta.get("training") if model.meta else None) or {}
-    labels = list(model.schema.fields["label"].labels) if model.simple else None
-    calibration = model.calibration
-    report = model.report
-    if report is None and os.path.exists(os.path.join(source, "report.json")):
-        _write_json(os.path.join(tmp, "train_report.json"), _public(_json(os.path.join(source, "report.json"))))
-    if report is not None:
-        _write_json(os.path.join(tmp, "report.json"), _public(report.to_dict()))
-    while True:
-        version = _VERSION.search(dest)
-        meta = {
-            "format": FORMAT,
-            "name": os.path.basename(dest),
-            "version": int(version.group(1)) if version else None,
-            "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "decisionsmith_version": __version__,
-            "kind": "labels" if model.simple else "class",
-            "labels": labels,
-            "question": model.schema.fields["label"].question["instructions"] if model.simple else None,
-            "schema": describe(model.schema),
-            "questions": model.schema.questions(),
-            "calibration": {n: c["temperature"] for n, c in calibration.items() if c.get("temperature") is not None},
-            "thresholds": {n: c.get("threshold") for n, c in calibration.items() if "threshold" in c},
-            "base_model": training.get("base"),
-            "data_hash": training.get("data_hash"),
-            "training": {k: v for k, v in training.items() if k != "text_hashes"},
-        }
-        _write_json(os.path.join(tmp, META), meta)
-        with open(os.path.join(tmp, "MODEL_CARD.md"), "w", encoding="utf-8") as f:
-            f.write(_card(meta, report, dest))
-        try:
-            if os.path.exists(dest):
-                raise FileExistsError(dest)
-            os.rename(tmp, dest)
-            break
-        except OSError:
-            if not numbered or not os.path.exists(dest):
-                shutil.rmtree(tmp, ignore_errors=True)
-                raise
-            dest = _next(_VERSION.sub("", dest))
+    tmp = os.path.join(parent_dir, ".%s.tmp-%s" % (os.path.basename(dest), uuid.uuid4().hex))
+    try:
+        shutil.copytree(source, tmp, ignore=shutil.ignore_patterns("checkpoint_latest", META, "report.*", "*.tmp-*"))
+        cfg_path = os.path.join(source, "rl_agent_config.json")
+        trained = (_json(cfg_path).get("decisionsmith") or {}) if os.path.exists(cfg_path) else {}
+        training = _portable_training(trained or (model.meta.get("training") if model.meta else None) or {})
+        tmp_cfg = os.path.join(tmp, "rl_agent_config.json")
+        if trained and os.path.exists(tmp_cfg):
+            cfg = _json(tmp_cfg)
+            cfg["decisionsmith"] = _portable_training(cfg["decisionsmith"])
+            _write_json(tmp_cfg, cfg)
+        labels = list(model.schema.fields["label"].labels) if model.simple else None
+        calibration = model.calibration
+        report = model.report
+        if report is None and os.path.exists(os.path.join(source, "report.json")):
+            _write_json(os.path.join(tmp, "train_report.json"), _public(_json(os.path.join(source, "report.json"))))
+        if report is not None:
+            _write_json(os.path.join(tmp, "report.json"), _public(report.to_dict()))
+        while True:
+            version = _VERSION.search(dest)
+            meta = {
+                "format": FORMAT,
+                "name": os.path.basename(dest),
+                "version": int(version.group(1)) if version else None,
+                "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "decisionsmith_version": __version__,
+                "kind": "labels" if model.simple else "class",
+                "labels": labels,
+                "question": model.schema.fields["label"].question["instructions"] if model.simple else None,
+                "schema": describe(model.schema),
+                "questions": model.schema.questions(),
+                "calibration": {
+                    n: c["temperature"] for n, c in calibration.items() if c.get("temperature") is not None
+                },
+                "thresholds": {n: c.get("threshold") for n, c in calibration.items() if "threshold" in c},
+                "base_model": training.get("base"),
+                "data_hash": training.get("data_hash"),
+                "training": {k: v for k, v in training.items() if k != "text_hashes"},
+            }
+            _write_json(os.path.join(tmp, META), meta)
+            with open(os.path.join(tmp, "MODEL_CARD.md"), "w", encoding="utf-8") as f:
+                f.write(_card(meta, report, _shown_path(dest)))
+            try:
+                if os.path.exists(dest):
+                    raise FileExistsError(dest)
+                os.rename(tmp, dest)
+                break
+            except OSError:
+                if not numbered or not os.path.exists(dest):
+                    raise
+                dest = _next(_VERSION.sub("", dest))
+    except BaseException:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
     if verbose:
         print("saved to %s" % dest)
     return dest
