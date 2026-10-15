@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **`report.switched`** on the report from `model.train()` and `h.finetune()`: True when the new weights are now in
+  use, False when the old ones were kept. When training kept the downloaded base model, so there is nothing on disk
+  to save, `model.save()` now says so (`nothing to save: training ran but the new model scored worse ...`) instead
+  of "train it first".
 - **Saved model folders hold no local paths.** A base checkpoint that was a local folder is recorded by its folder
   name only (in `decisionsmith.json`, the copied `rl_agent_config.json`, `train_report.json` and the model card);
   `laya` and hub ids stay as they are. A failed or interrupted `save` leaves no temporary folder behind, and two saves
