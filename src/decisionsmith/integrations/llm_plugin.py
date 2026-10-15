@@ -38,38 +38,35 @@ def teacher(model: Any, **options: Any) -> TextEngine:
     return TextEngine(name, complete)
 
 
-def _register_commands() -> Any:
+def register_commands(cli: Any) -> None:
+    # llm loads this module through its `llm` entry point. click and llm are imported here, when llm calls the
+    # hook, so importing this module (and decisionsmith) never imports either.
     import click
     import llm
 
-    @llm.hookimpl
-    def register_commands(cli: Any) -> None:
-        @cli.command(name="decide")
-        @click.argument("text", required=False)
-        @click.option("labels", "-l", "--label", multiple=True, required=True, help="A label (repeat: -l a -l b)")
-        @click.option("--engine", default="laya", help="The decisionsmith model: laya, laya:<dir>, jev, ...")
-        @click.option("--teacher", "teacher_id", help="An llm model id that answers when the engine is unsure")
-        @click.option("--question", help="What to decide, e.g. 'Which team should handle this?'")
-        def decide(text: str | None, labels: tuple[str, ...], engine: str, teacher_id: str | None, question: Any):
-            """Decide TEXT (or stdin) with a decisionsmith model: prints one of the labels."""
-            import decisionsmith as ds
+    @cli.command(name="decide")
+    @click.argument("text", required=False)
+    @click.option("labels", "-l", "--label", multiple=True, required=True, help="A label (repeat: -l a -l b)")
+    @click.option("--engine", default="laya", help="The decisionsmith model: laya, laya:<dir>, jev, ...")
+    @click.option("--teacher", "teacher_id", help="An llm model id that answers when the engine is unsure")
+    @click.option("--question", help="What to decide, e.g. 'Which team should handle this?'")
+    def decide(text: str | None, labels: tuple[str, ...], engine: str, teacher_id: str | None, question: Any):
+        """Decide TEXT (or stdin) with a decisionsmith model: prints one of the labels."""
+        import decisionsmith as ds
 
-            text = text if text is not None else sys.stdin.read()
-            m: Any = ds.model(list(labels), engine, question=question)
-            if teacher_id:
-                m = ds.harness(m, teacher=teacher(llm.get_model(teacher_id)), log=None)
-            click.echo(m(text.strip()) if teacher_id else m.predict(text.strip()))
-
-    return register_commands
+        text = text if text is not None else sys.stdin.read()
+        m: Any = ds.model(list(labels), engine, question=question)
+        if teacher_id:
+            m = ds.harness(m, teacher=teacher(llm.get_model(teacher_id)), log=None)
+        click.echo(m(text.strip()) if teacher_id else m.predict(text.strip()))
 
 
-def __getattr__(name: str) -> Any:
-    # llm loads this module through its `llm` entry point; the hook is built on first access, so importing
-    # this module (and decisionsmith) never imports llm or click.
-    if name == "register_commands":
-        return _register_commands()
-    raise AttributeError(name)
-
-
-def __dir__() -> list[str]:
-    return [*globals(), "register_commands"]
+# The hook has to be a real module attribute: pluggy 1.7 finds hooks with inspect.getattr_static, which never
+# reaches a module __getattr__. `llm.hookimpl` is `pluggy.HookimplMarker("llm")`, so marking it with pluggy
+# directly keeps llm itself unimported; without pluggy, llm isn't installed and nothing looks for the hook.
+try:
+    from pluggy import HookimplMarker
+except ImportError:  # pragma: no cover
+    pass
+else:
+    register_commands = HookimplMarker("llm")(register_commands)
