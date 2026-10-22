@@ -46,7 +46,7 @@ agno = ["agno>=3.0"]
 decisionsmith = "decisionsmith.cli:main"
 
 [project.entry-points.llm]
-decisionsmith = "decisionsmith.integrations.llm_plugin"
+decisionsmith = "decisionsmith.integrations.llm_plugin:hooks"
 
 [project.urls]
 Homepage = "https://github.com/izam-mohammed/decisionsmith"

@@ -53,14 +53,14 @@ def test_llm_models_are_teachers():
 
 
 def test_the_plugin_hook_is_lazy_and_registers_decide():
-    assert "register_commands" in dir(llm_plugin)
+    assert "hooks" in dir(llm_plugin)
     with pytest.raises(AttributeError):
         llm_plugin.nothing
     from llm.cli import cli
     from llm.plugins import pm
 
     assert "decide" in cli.commands, "the llm entry point loads decisionsmith.integrations.llm_plugin"
-    assert any(getattr(p, "__name__", "") == "decisionsmith.integrations.llm_plugin" for p in pm.get_plugins())
+    assert pm.get_plugin("decisionsmith") is not None
 
 
 def test_decide_command(monkeypatch):

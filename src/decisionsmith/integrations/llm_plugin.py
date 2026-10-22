@@ -8,6 +8,7 @@ ds.harness(Ticket, teacher=teacher(llm.get_model("gpt-5-mini")), student="laya")
 from __future__ import annotations
 
 import sys
+from types import SimpleNamespace
 from typing import Any
 
 from ..engines.structured import TextEngine
@@ -64,12 +65,13 @@ def _register_commands() -> Any:
 
 
 def __getattr__(name: str) -> Any:
-    # llm loads this module through its `llm` entry point; the hook is built on first access, so importing
-    # this module (and decisionsmith) never imports llm or click.
-    if name == "register_commands":
-        return _register_commands()
+    # llm loads `hooks` through its `llm` entry point; it is built on first access, so importing this module
+    # (and decisionsmith) never imports llm or click. pluggy finds hooks with `inspect.getattr_static`, so the
+    # hook is a real attribute of `hooks`, not one this function builds.
+    if name == "hooks":
+        return SimpleNamespace(register_commands=_register_commands())
     raise AttributeError(name)
 
 
 def __dir__() -> list[str]:
-    return [*globals(), "register_commands"]
+    return [*globals(), "hooks"]

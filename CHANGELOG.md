@@ -26,6 +26,9 @@
   name only (in `decisionsmith.json`, the copied `rl_agent_config.json`, `train_report.json` and the model card);
   `laya` and hub ids stay as they are. A failed or interrupted `save` leaves no temporary folder behind, and two saves
   in one process never share one.
+- **`llm decide` registers again with pluggy 1.7.** pluggy now finds hooks with `inspect.getattr_static`, which
+  skips the module `__getattr__` that built the hook, so the `llm` entry point now loads
+  `decisionsmith.integrations.llm_plugin:hooks`. Reinstall `decisionsmith[llm-plugin]` to pick up the new entry point.
 
 ## 0.1.0 (25/09/2026)
 
