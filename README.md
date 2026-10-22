@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.svg">
+    <img src="assets/banner-light.svg" alt="A small model copies an expensive LLM's homework, answer by answer, and gets an A+ for it." width="100%">
+  </picture>
+</p>
+
 # decisionsmith
 
 [![PyPI](https://img.shields.io/pypi/v/decisionsmith)](https://pypi.org/project/decisionsmith/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fizam-mohammed%2Fdecisionsmith%2Fmain%2Fpyproject.toml)](https://pypi.org/project/decisionsmith/) [![Licence](https://img.shields.io/pypi/l/decisionsmith)](https://github.com/izam-mohammed/decisionsmith/blob/main/LICENSE)
