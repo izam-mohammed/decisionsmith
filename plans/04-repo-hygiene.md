@@ -87,7 +87,7 @@ The YAML parses; GitHub accepts the Dependabot config on the PR.
 
 ### Phase 1: topics
 
-- [ ] The existing topics kept as they are (`classification`,
+- [x] The existing topics kept as they are (`classification`,
   `claude-code-plugin`, `distillation`, `fine-tuning`, `jev`, `langchain`,
   `laya`, `llamaindex`, `llm`, `machine-learning`, `mcp-server`, `python`,
   `system-one`): all thirteen are accurate, so none is removed; check:
@@ -95,19 +95,19 @@ The YAML parses; GitHub accepts the Dependabot config on the PR.
 
 ### Phase 2: Dependabot
 
-- [ ] `.github/dependabot.yml` gains a `pre-commit` entry beside the
+- [x] `.github/dependabot.yml` gains a `pre-commit` entry beside the
   `github-actions` and `uv` ones; check: the file parses with
   `yaml.safe_load`.
 
 ### Phase 3: security policy
 
-- [ ] `SECURITY.md` read against this repository and kept as it is: it
+- [x] `SECURITY.md` read against this repository and kept as it is: it
   names the package, CLI, MCP server and release workflow, and the private
   reporting link; check: the link points at this repository.
 
 ### Phase 4: open the PR
 
-- [ ] The branch pushed and its PR opened against `main` (or, if one is
+- [x] The branch pushed and its PR opened against `main` (or, if one is
   already open for this branch, its body brought up to date) with the
   title `chore: add pre-commit to dependabot`, a body naming this plan,
   what changed and why, and the checks run with their result. The PR's
