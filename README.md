@@ -6,8 +6,6 @@
   </picture>
 </p>
 
-# decisionsmith
-
 [![PyPI](https://img.shields.io/pypi/v/decisionsmith)](https://pypi.org/project/decisionsmith/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fizam-mohammed%2Fdecisionsmith%2Fmain%2Fpyproject.toml)](https://pypi.org/project/decisionsmith/) [![Licence](https://img.shields.io/pypi/l/decisionsmith)](https://github.com/izam-mohammed/decisionsmith/blob/main/LICENSE)
 
 **Use and fine-tune System One models (Jev, Laya) on your data.**
