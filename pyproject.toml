@@ -18,7 +18,7 @@ classifiers = [
 dependencies = ["pydantic>=2.6", "httpx>=0.27"]
 
 [project.optional-dependencies]
-laya = ["laya>=0.3.20,<0.4"]
+laya = ["laya>=0.3.20,<0.5"]
 anthropic = ["anthropic>=1.0"]
 mcp = ["mcp>=2.2"]
 all = ["decisionsmith[laya,anthropic,mcp]"]
