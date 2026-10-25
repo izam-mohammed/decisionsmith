@@ -87,7 +87,7 @@ explicit = true
 torch = [{ index = "pytorch-cpu", marker = "sys_platform != 'darwin'" }]
 
 [build-system]
-requires = ["uv_build>=0.8.0,<0.9"]
+requires = ["uv_build>=0.8.0,<0.14"]
 build-backend = "uv_build"
 
 [tool.ruff]
