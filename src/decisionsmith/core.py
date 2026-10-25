@@ -167,6 +167,9 @@ class Harness(Generic[T]):
 
     def many(self, texts: list[str]) -> list[Any]:
         """Decide many texts; the student runs batched, teacher calls run in parallel. Order is kept."""
+        return [self._plain(r.value) for r in self._results(texts)]
+
+    def _results(self, texts: list[str]) -> list[Result[T]]:
         texts = list(texts)
         student_fields = [n for n, m in self.modes.items() if m != "teacher"]
         pre: list[Any] = [None] * len(texts)
@@ -175,8 +178,7 @@ class Harness(Generic[T]):
                 pre = ask_many(self.student, texts, self.schema.questions(student_fields))
             except Exception as e:
                 pre = [e] * len(texts)
-        results = self._executor().map(lambda tp: self._decide(tp[0], tp[1], batched=True), zip(texts, pre))
-        return [self._plain(r.value) for r in results]
+        return list(self._executor().map(lambda tp: self._decide(tp[0], tp[1], batched=True), zip(texts, pre)))
 
     def _decide(self, text: str, pre: Any, batched: bool = False) -> Result[T]:
         flow = self._flow(text, pre if batched else None)

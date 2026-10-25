@@ -1,0 +1,4 @@
+title: Polars
+summary: "`decide_expr(x, \"text\", field)`: a decision as a Polars expression (one field, or a struct of every field with confidence and source), batched through `map_batches`; works on lazy frames."
+needs: [polars, laya]
+imports: [polars]

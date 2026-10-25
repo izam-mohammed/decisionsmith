@@ -1,0 +1,4 @@
+title: Chroma
+summary: "Tag documents with decisions at ingest (`add` / `tag`, then filter with `where=`), and drop off-topic hits after retrieval (`filter_results`). Uses Chroma's in-memory client and a toy embedding here."
+needs: [chroma, laya]
+imports: [chromadb]
