@@ -193,7 +193,7 @@ HEAVY = {
     "google", "agno", "guardrails", "nemoguardrails", "outlines", "marvin", "llm", "chromadb", "qdrant_client",
     "pandas", "polars", "datasets", "duckdb", "pyspark", "dask", "ray", "label_studio_sdk", "argilla", "cleanlab",
     "huggingface_hub", "opentelemetry", "langfuse", "langsmith", "phoenix", "prometheus_client", "mlflow", "wandb",
-    "deepeval", "inspect_ai", "fastapi", "starlette", "django", "flask", "litestar", "celery", "rq", "dramatiq",
+    "deepeval", "inspect_ai", "fastapi", "starlette", "uvicorn", "django", "flask", "litestar", "celery", "rq", "dramatiq",
     "gradio", "streamlit", "instructor", "portkey_ai", "click", "pluggy", "ollama", "outlines_core", "haystack_integrations",
 }
 real = builtins.__import__
