@@ -6,6 +6,9 @@
   FastAPI + Uvicorn): `POST /v1/decide`, a Jev-compatible `POST /v1/systemone`, `POST /v1/label`, `GET /v1/status`,
   `GET /health`, Prometheus `GET /metrics` and OpenAPI docs; optional bearer key from `DECISIONSMITH_API_KEY`, body
   and text size limits, JSON errors with a fix. See docs/serve.md.
+- **`llm decide` works again with pluggy 1.7.** pluggy now finds hooks with `inspect.getattr_static`, which
+  skipped the lazily built `register_commands` hook, so the command silently went missing. The hook is a plain
+  function again; importing the plugin still never imports llm or click.
 - **Repository standards:** security policy, contributing guide, code of conduct, issue forms, Dependabot,
   OpenSSF Scorecard, and hardened workflows (actions pinned to commit SHAs, read-only tokens). Releases now run the
   tests, publish to PyPI with PEP 740 attestations and create a GitHub release from this changelog.
