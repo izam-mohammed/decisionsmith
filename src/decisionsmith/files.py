@@ -31,3 +31,19 @@ def next_run(name: str, base: str = "") -> str:
     while os.path.exists(os.path.join(base, "runs", "%s-v%d" % (stem, n))):
         n += 1
     return os.path.join(base, "runs", "%s-v%d" % (stem, n))
+
+
+def folder_name(path: str) -> str:
+    """The last part of a path, split on both `/` and `\\` so a Windows path reduces on any OS."""
+    parts = [p for p in re.split(r"[\\/]+", path) if p and p != "."]
+    return parts[-1] if parts else path
+
+
+def path_like(value: str) -> bool:
+    """A value that is a local path, whatever folder we run in: absolute, relative (`./`, `../`), `~`, or Windows."""
+    return (
+        os.path.isabs(value)
+        or value.startswith((".", "~"))
+        or "\\" in value
+        or re.match(r"^[A-Za-z]:[\\/]", value) is not None
+    )

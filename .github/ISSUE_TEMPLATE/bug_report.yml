@@ -1,0 +1,43 @@
+name: Bug report
+description: Something in decisionsmith does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not paste API keys, private data or real customer texts.
+        Security problems go through private reporting instead (see the link on the new issue page).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Smallest example that shows it
+      description: A short script or CLI command, ideally with a tiny made-up schema and a few texts.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Error or output
+      description: The full traceback or the CLI output (`--json` helps).
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: decisionsmith version
+      placeholder: "uv run python -c 'import decisionsmith; print(decisionsmith.__version__)'"
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, Python version, engines in use (teacher and student) and the output of `uv run decisionsmith doctor`.
+      render: text
