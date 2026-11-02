@@ -1,0 +1,4 @@
+title: pandas
+summary: "`df.ds.decide(\"text\", x)`: a column per field plus `<field>_confidence` and `<field>_source`, batched; or `decide(df, \"text\", x, prefix=\"pred_\")`."
+needs: [pandas, laya]
+imports: [pandas]

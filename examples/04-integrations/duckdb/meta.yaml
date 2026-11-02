@@ -1,0 +1,4 @@
+title: DuckDB
+summary: "SQL functions `ds_decide(text, field)`, `ds_confidence(text, field)` and `ds_is_true(text)` (vectorised Arrow UDFs, each text decided once per session)."
+needs: [duckdb, laya]
+imports: [duckdb, pyarrow]
