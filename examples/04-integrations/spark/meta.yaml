@@ -1,0 +1,4 @@
+title: Spark
+summary: "`udf(build, field)`: a `pandas_udf` over a text column (one field, or a struct of every field with confidence and source); `build` makes the model or harness in each Python worker. Needs Java 17+."
+needs: [spark, laya]
+imports: [pyspark]

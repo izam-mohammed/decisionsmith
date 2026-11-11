@@ -10,6 +10,6 @@ venv="${2:-.venvs/$name}"
 VIRTUAL_ENV="$venv" uv pip install -q --torch-backend cpu -e ".[laya]" \
   --group "tests/integrations/pyproject.toml:int-$name"
 DS_EXAMPLES="04-integrations/$name" "$venv/bin/python" -m pytest -o addopts="" -q -p no:warnings \
-  "tests/integrations/test_$module.py" tests/test_examples.py --cov="decisionsmith.integrations.$module" --cov-branch \
+  "tests/integrations/test_$module.py" tests/test_examples.py --cov=decisionsmith --cov-branch \
   --cov-report=json:"$venv/coverage.json"
 "$venv/bin/python" scripts/check_coverage.py --file "$venv/coverage.json" --only "integrations/$module.py"
