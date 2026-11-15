@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
-from collections.abc import Sequence
-from typing import Any, Protocol, overload, runtime_checkable
+from collections.abc import Callable, Sequence
+from typing import Any, Protocol, TypeVar, overload, runtime_checkable
+
+R = TypeVar("R")
 
 
 class EngineError(RuntimeError):
@@ -13,6 +16,23 @@ class EngineError(RuntimeError):
     def __init__(self, engine: str, message: str, fix: str = "") -> None:
         self.engine, self.message, self.fix = engine, message, fix
         super().__init__("engine %r: %s%s" % (engine, message, ("\n  fix: " + fix) if fix else ""))
+
+
+async def in_thread(fn: Callable[..., R], /, *args: Any, **kwargs: Any) -> R:
+    """`asyncio.to_thread`, but a `StopIteration` from `fn` comes back as a `RuntimeError`.
+
+    Before Python 3.12 a `StopIteration` raised in the thread cannot be set on the awaiting
+    asyncio future, so the await never returns (an HTTP request under `serve` hangs forever).
+    3.12+ already turns it into a `RuntimeError`; this does the same on every version.
+    """
+
+    def run() -> R:
+        try:
+            return fn(*args, **kwargs)
+        except StopIteration as e:
+            raise RuntimeError("%s raised StopIteration" % getattr(fn, "__qualname__", "the call")) from e
+
+    return await asyncio.to_thread(run)
 
 
 @runtime_checkable

@@ -8,7 +8,6 @@ Needs the `[serve]` extra (FastAPI + Uvicorn); `import decisionsmith` never load
 
 from __future__ import annotations
 
-import asyncio
 import contextvars
 import hmac
 import json
@@ -22,7 +21,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from .core import Harness, Mode, harness
-from .engines import EngineError
+from .engines import EngineError, in_thread
 from .schema import confidence, option_keys, top
 
 API_KEY_ENV = "DECISIONSMITH_API_KEY"
@@ -218,7 +217,7 @@ class _CountedTeacher:
     async def aask(self, text: str, questions: dict[str, dict[str, Any]]) -> Any:
         aask = getattr(self.engine, "aask", None)
         if not callable(aask):
-            return await asyncio.to_thread(self.ask, text, questions)
+            return await in_thread(self.ask, text, questions)
         try:
             raw = await aask(text, questions)
         except Exception:
@@ -495,7 +494,7 @@ def app(
             )
 
         async def run() -> None:
-            await asyncio.to_thread(h.label, body.id, **body.labels)
+            await in_thread(h.label, body.id, **body.labels)
 
         await call(run)
         return {"id": body.id, "labelled": sorted(body.labels)}
@@ -503,7 +502,7 @@ def app(
     @api.get("/v1/status", dependencies=[Depends(auth)], summary="Per field: agreement, sure rate, advice")
     async def status() -> dict[str, Any]:
         async def run() -> Any:
-            return await asyncio.to_thread(h.status)
+            return await in_thread(h.status)
 
         s = await call(run)
         return {"model": name, "modes": dict(h.modes), "teacher": h.teacher.name if h.teacher else None, **s.to_dict()}

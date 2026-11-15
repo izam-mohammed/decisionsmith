@@ -417,6 +417,32 @@ def test_app_from_a_saved_model_folder(tiny, tmp_path):
     con.close()
 
 
+def test_engine_raising_stopiteration_does_not_hang_the_server(db):
+    # before 3.12 a StopIteration from a thread never resolved the awaiting future: the request hung
+    def stop(text):
+        raise StopIteration
+
+    broken = FakeEngine(stop, confidence=1.0, name="teacher")
+    with ds.harness(Ticket, teacher=broken, student=FakeEngine(confidence=0.9), mode="shadow", log=db) as h:
+        api = srv.app(h)
+
+        async def go():
+            transport = httpx.ASGITransport(app=api)
+            async with httpx.AsyncClient(transport=transport, base_url="http://ds.test") as c:
+                one = {"state": TEXT, "questions": {"team": {}}}
+                return await asyncio.wait_for(
+                    asyncio.gather(c.post("/v1/decide", json={"text": TEXT}), c.post("/v1/systemone", json=one)),
+                    timeout=10,
+                )
+
+        decided, one = asyncio.run(go())
+    assert decided.status_code == 200 and set(decided.json()["source"].values()) == {"student"}
+    assert one.status_code == 200 and one.json()["routing"]["source"] == {"team": "student"}
+    with pytest.raises(RuntimeError, match="raised StopIteration") as e:
+        asyncio.run(ds.engines.in_thread(stop, "x"))
+    assert isinstance(e.value.__cause__, StopIteration)
+
+
 def test_app_from_a_model_and_bad_arguments(tiny, tmp_path, h):
     m = ds.load(saved(tiny, tmp_path))
     with TestClient(srv.app(m, log=None)) as c:

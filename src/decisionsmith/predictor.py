@@ -12,7 +12,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, create_model
 
-from .engines import Engine, EngineError, LayaEngine, ask_many, from_string, response, write
+from .engines import Engine, EngineError, LayaEngine, ask_many, from_string, in_thread, response, write
 from .files import next_run, parent, write_jsonl
 from .report import Report
 from .schema import Schema, compile_schema, top
@@ -91,7 +91,7 @@ class Model:
         if callable(aask):
             raws = list(await asyncio.gather(*(aask(t, questions) for t in texts)))
         else:
-            raws = await asyncio.to_thread(self.ask_many, texts, questions)
+            raws = await in_thread(self.ask_many, texts, questions)
         return self._values(text, raws)
 
     def _texts(self, text: str | list[str]) -> list[str]:

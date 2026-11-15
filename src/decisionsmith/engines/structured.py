@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 from collections.abc import Awaitable, Callable
@@ -14,7 +13,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, ValidationError, create_model
 
 from .. import offline
-from .base import EngineError
+from .base import EngineError, in_thread
 
 SYSTEM = (
     "You label text for an automated system. Read the text between <text> tags and answer every "
@@ -172,7 +171,7 @@ class TextEngine:
 
     async def aask(self, text: str, questions: dict[str, dict[str, Any]]) -> dict[str, Any]:
         if self.acomplete is None:
-            return await asyncio.to_thread(self.ask, text, questions)
+            return await in_thread(self.ask, text, questions)
         model = answers_model(questions)
         user = prompt(text, questions)
         reply, usage = await self._acall(SYSTEM, user, model)
