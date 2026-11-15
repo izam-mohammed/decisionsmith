@@ -253,10 +253,11 @@ def test_contract_same_answer_keys_as_laya(tiny, db):
     """Every answer carries the keys Laya's own /v1/systemone answer carries (minus Laya-only extras)."""
     student = LayaEngine(str(tiny))
     extras = {"answer_confidence", "action"}
+    usage_extras = {"state_tokens", "state_tokens_dropped", "truncated", "truncated_questions"}  # laya >= 0.4
     with ds.harness(Rated, student=student, log=db) as h, TestClient(srv.app(h)) as c:
         laya = student.ask("server down", h.schema.questions())
         ours = c.post("/v1/systemone", json={"state": "server down"}).json()
-    assert set(ours) >= set(laya) - {"routing"} and set(ours["usage"]) == set(laya["usage"])
+    assert set(ours) >= set(laya) - {"routing"} and set(ours["usage"]) == set(laya["usage"]) - usage_extras
     for qid, answer in laya["answers"].items():
         assert set(ours["answers"][qid]) == set(answer) - extras, qid
         assert ours["answers"][qid]["type"] == answer["type"]
