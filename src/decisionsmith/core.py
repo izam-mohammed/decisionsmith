@@ -16,7 +16,7 @@ from typing import Any, Generic, Literal, TypeVar, cast
 
 from pydantic import BaseModel
 
-from .engines import Engine, EngineError, LayaEngine, ask_many, from_string, response
+from .engines import Engine, EngineError, LayaEngine, ask_many, from_string, in_thread, response
 from .files import next_run
 from .log import Log
 from .report import Report
@@ -204,7 +204,7 @@ class Harness(Generic[T]):
     async def _aask(self, engine: Engine, text: str, names: list[str], raw: Any = None) -> _Answers:
         aask = getattr(engine, "aask", None)
         if raw is not None or not callable(aask):
-            return await asyncio.to_thread(self._ask, engine, text, names, raw)
+            return await in_thread(self._ask, engine, text, names, raw)
         try:
             reply = await aask(text, self.schema.questions(names))
         except Exception as e:

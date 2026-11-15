@@ -1,6 +1,6 @@
 """Engines: anything that answers Jev-format questions. Every engine speaks the `/v1/systemone` shape."""
 
-from .base import Engine, EngineError, ask_many, framework, from_string, need, response
+from .base import Engine, EngineError, ask_many, framework, from_string, in_thread, need, response
 from .laya import LAYA_REPO, LayaEngine, resolve_laya
 from .llm import PROVIDERS, LLMEngine, write
 from .structured import TextEngine
@@ -21,6 +21,7 @@ __all__ = [
     "ask_many",
     "framework",
     "from_string",
+    "in_thread",
     "need",
     "resolve_laya",
     "response",
