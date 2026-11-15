@@ -32,6 +32,15 @@
 | `autogen` | `integrations.autogen` | any AutoGen 0.4+ model client as the teacher (OpenAI, Azure OpenAI, Anthropic, Ollama; AG2's `autogen` package is not supported); `tool(x, name, description)`: an `autogen_core` `FunctionTool` returning the decision; `stop_on(x, field, block, sources)`: a team `TerminationCondition` that stops the run when a chat message's decision is one of `block` (combines with `\|` / `&`) | autogen-agentchat / autogen-ext 0.7.5 (anthropic 1.8.0, ollama 0.6.2, openai 3.19.2), `ReplayChatCompletionClient` |
 | `semantic-kernel` | `integrations.semantic_kernel` | any Semantic Kernel chat completion service as the teacher; `plugin(x, name, description)`: a plugin object with one `@kernel_function` (text in, the decision out; works with auto function calling); `invocation_filter(x, field, block, functions, message)` for `kernel.add_filter(FilterTypes.FUNCTION_INVOCATION, ...)`: the function is not run and `message` is its result when the decision about its text arguments is one of `block` | semantic-kernel 1.44.1 (anthropic 0.125.0, ollama 0.6.2; auto function calling on a mocked OpenAI transport) |
 | `agno` | `integrations.agno` | any Agno model as the teacher (`OpenAIChat`, `Claude`, `Gemini`, `Ollama`, ...); `tool(x, name, description)`: an Agno tool (`Function`) taking `text` and returning the decision as JSON, for `agent.run` and `agent.arun` | agno 3.0.11 (openai 3.19.2, anthropic 1.8.0, google-genai 2.25.0, ollama 0.6.2); real `Agent` on a mocked OpenAI transport |
+| `pandas` | `integrations.pandas` | `df.ds.decide("text", x, fields=None, prefix="")` (the accessor is added when you import the module) and `decide(df, "text", x)`: a column per field plus `<field>_confidence` and `<field>_source` (`student` / `teacher`), batched | pandas 3.0.6 |
+| `polars` | `integrations.polars` | `decide_expr(x, "text", field=None, prefix="")`: one field as a column, or a `decision` struct of every field with confidence and source (`.unnest("decision")`), through `map_batches`; eager and lazy frames | polars 1.44.2 |
+| `datasets` | `integrations.datasets` | `dataset.map(ds_map(x), batched=True)` adds the decision columns; `"hf:<dataset>"` / `"hf:<dataset>:<split>"` as training and evaluation data for `model.train`, `model.evaluate` and `ds.finetune` (a hub id or a local folder of CSV / JSON / Parquet; `ClassLabel` ids become names) | datasets 5.0.1 (local Parquet folders; hub downloads are the datasets library's own code and are not run offline) |
+| `duckdb` | `integrations.duckdb` | `register(con, x, field=None, prefix="ds")`: SQL functions `ds_decide(text, field)`, `ds_confidence(text, field)` and `ds_is_true(text)` (the yes/no field), vectorised Arrow UDFs; each text is decided once per session (last 4096 texts) | duckdb 1.5.5, pyarrow 25.0.1 |
+| `spark` | `integrations.spark` | `udf(build, field=None, prefix="")`: a `pandas_udf` (one field, or a struct of every field with confidence and source); `build` is a function returning the model or harness, run once on the driver and once per Python worker | pyspark 4.2.0 (pandas 2.3.3, pyarrow 25.0.1, Java 17), real `local[2]` session |
+| `dask` | `integrations.dask` | `decide(ddf, "text", x, fields=None, prefix="")`: lazy decision columns via `map_partitions`; `x` can be a builder function for process-based schedulers | dask[dataframe] 2026.8.0 (pandas 3.0.6), threads and processes schedulers |
+| `ray` | `integrations.ray` | `Decide(x, "text", fields=None, prefix="")` for `Dataset.map_batches`: an instance for tasks, or the class with `fn_constructor_args=(build,)` for an actor pool (built once per actor); dict-of-arrays and pandas batches | ray[data] 2.58.0 (pandas 3.0.6), real local cluster |
+| `chroma` | `integrations.chroma` | `tag(x, documents, metadatas)` / `add(collection, x, ids=..., documents=..., ...)`: decisions as metadata at ingest (filter with `where=`); `filter_results(x, results, field, keep, query=...)`: drop the hits of `collection.query` / `get` whose decision is not in `keep` | chromadb 1.5.9, in-memory `EphemeralClient` |
+| `qdrant` | `integrations.qdrant` | `tag(x, texts, payloads)` / `points(x, ids, vectors, texts)`: decisions in the payload at ingest (filter with a payload `Filter`); `filter_points(x, hits, field, keep, query=...)` after `query_points` / `scroll` | qdrant-client 1.19.1, `QdrantClient(":memory:")` |
 
 Framework LLM objects are recognised by the module of their class, so `teacher=ChatOpenAI(...)` just works; the
 framework is imported only when the wrapped teacher is first used.
@@ -164,15 +173,46 @@ graph.add_conditional_edges(
 | **Celery / RQ / Dramatiq** | batch task using `h.many()` | v0.2 |
 | Temporal, Prefect, Airflow | activity / task recipes | later |
 
-## 5. Data: v0.2
+## 5. Data and RAG stores
 
-| integration | adapter | pri |
-|---|---|---|
-| **pandas** | `df.ds.decide("text", harness)` → new columns + source/confidence | v0.2 |
-| **Polars** | expression plugin / `map_batches` helper | v0.2 |
-| **Hugging Face datasets** | `ds.finetune` input (`hf:org/name`), `dataset.map` helper | v0.2 |
-| **DuckDB** | UDFs `ds_decide(text, 'field')` | v0.2 |
-| Spark, BigQuery, Snowflake | UDF examples | later |
+Decide a whole table in batches (the production flow: nightly jobs, backfills, reports), or train on a dataset by
+name (the developer flow). Every helper takes a `ds.model(...)` or a `ds.harness(...)` and adds, per field, the
+value, `<field>_confidence` (the top probability) and `<field>_source` (`student` or `teacher`). Missing or empty
+texts give empty values instead of an error. The shipped rows are in the table above; examples are in
+`examples/04-integrations/<name>/`.
+
+<!-- no-test: needs the pandas, duckdb and datasets extras; examples/04-integrations runs each in CI -->
+```python
+import decisionsmith as ds
+import decisionsmith.integrations.pandas  # adds df.ds
+from decisionsmith.integrations.duckdb import register
+
+h = ds.harness(Ticket, teacher="claude-haiku-4-5", student="laya")
+df = df.ds.decide("text", h, prefix="pred_")  # + pred_team, pred_team_confidence, pred_team_source, ...
+register(con, h)  # SELECT ds_decide(text, 'team'), ds_confidence(text, 'team') FROM tickets WHERE ds_is_true(text)
+model = ds.model(Ticket)
+model.train("hf:my-org/tickets")  # a hub dataset or a local folder; "hf:my-org/tickets:test" picks a split
+```
+
+Options people change: `fields=` (only some fields), `prefix=` (keep the new columns apart from your own labels),
+`batch_size=` (texts per model call, default 256), and for DuckDB `field=` (which yes/no field `ds_is_true` reads).
+
+What can go wrong:
+- *A harness can't be pickled* (its SQLite log), so Spark, Ray actors and process-based Dask take a function that
+  builds it: `udf(lambda: ds.harness(...), "team")`. The function runs in each worker; point `log=` at a path the
+  workers can write, or `log=None`.
+- *Spark needs Java 17+* and a worker Python with decisionsmith installed: set `PYSPARK_PYTHON` to it.
+- *Chroma metadata can't hold nulls*: an empty document gets no decision keys (and `None` metadata when nothing is left).
+- *`hf:` on Windows*: a drive path (`C:\...`) is not supported; use a relative path or a hub id. The CLI's
+  `finetune` / `bench` take files only; use Python for `hf:`.
+
+| integration | status |
+|---|---|
+| pandas, Polars, HF datasets, DuckDB, Spark, Dask, Ray Data, Chroma, Qdrant | shipped (above) |
+| pgvector | not yet: needs a running Postgres server, which the offline tests can't provide; the pandas or DuckDB helpers tag rows before you insert them |
+| BigQuery, Snowflake, Databricks | not yet: need cloud accounts |
+
+Next: [examples](../examples/README.md) (the gallery lists every data example).
 
 ## 6. Observability and evaluation: v0.2
 

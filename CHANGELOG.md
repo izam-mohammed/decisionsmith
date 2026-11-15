@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Data and RAG integrations**, each its own extra, tested offline against pinned versions: pandas
+  (`df.ds.decide("text", x)`), Polars (`decide_expr`), Hugging Face datasets (`dataset.map(ds_map(x))`, and
+  `"hf:<dataset>[:<split>]"` as training and evaluation data), DuckDB (`ds_decide`, `ds_confidence`, `ds_is_true`
+  SQL functions), Spark (`pandas_udf` factory), Dask (`decide` over partitions), Ray Data (`Decide` for
+  `map_batches`), Chroma and Qdrant (decision tags at ingest, relevance filters after retrieval). Every helper adds
+  a column per field plus `<field>_confidence` and `<field>_source`, batched.
 - **`llm decide` works again with pluggy 1.7.** pluggy now finds hooks with `inspect.getattr_static`, which
   skipped the lazily built `register_commands` hook, so the command silently went missing. The hook is a plain
   function again; importing the plugin still never imports llm or click.

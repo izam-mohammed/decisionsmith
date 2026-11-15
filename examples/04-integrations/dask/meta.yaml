@@ -1,0 +1,4 @@
+title: Dask
+summary: "`decide(ddf, \"text\", x)`: decision columns for a Dask DataFrame via `map_partitions`, lazy; `x` can be a function that builds the model or harness per worker."
+needs: [dask, laya]
+imports: [dask.dataframe]

@@ -1,0 +1,4 @@
+title: Ray Data
+summary: "`Dataset.map_batches(Decide(model))` for tasks, or `map_batches(Decide, fn_constructor_args=(build,), concurrency=n)` for an actor pool that builds the model or harness once per actor."
+needs: [ray, laya]
+imports: [ray]

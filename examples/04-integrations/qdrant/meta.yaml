@@ -1,0 +1,4 @@
+title: Qdrant
+summary: "Tag points with decisions at ingest (`points` / `tag`, then filter with a payload `Filter`), and drop off-topic hits after retrieval (`filter_points`). Uses Qdrant's in-memory mode and a toy embedding here."
+needs: [qdrant, laya]
+imports: [qdrant_client]
